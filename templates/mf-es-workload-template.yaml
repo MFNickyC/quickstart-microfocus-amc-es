@@ -79,30 +79,30 @@ Metadata:
           - PACDBMasterUsername
           - PACDBMasterUserPassword
           - PACDBMasterUserPasswordConfirm
-          - PACDBStorageInGiB
-      - Label:
-          default: Enterprise Server Fileshare Configuration
-        Parameters:
-          - FileshareType
-          - InstallFSDemoApp
-          - FSInstanceType
-          - FSStorageInGiB
-          - FSVIEWUserPassword
-          - FSVIEWUserPasswordConfirm
-      - Label:
-          default: Database Configuration
-        Parameters:
-          - DatabaseType
-          - InstallSQLDemoApp
-          - DBInstanceClass
-          - DBStorageInGiB
-          - DBMasterUsername
-          - DBMasterUserPassword
-          - DBMasterUserPasswordConfirm
-          - DeployMultiAZ
-          - DBBackupRetentionPeriod
-          - DBPreferredBackupWindow
-          - DBPreferredMaintenanceWindow
+          # - PACDBStorageInGiB
+      # - Label:
+      #     default: Enterprise Server Fileshare Configuration
+      #   Parameters:
+      #     - FileshareType
+      #     - InstallFSDemoApp
+      #     - FSInstanceType
+      #     - FSStorageInGiB
+      #     - FSVIEWUserPassword
+      #     - FSVIEWUserPasswordConfirm
+      # - Label:
+      #     default: Database Configuration
+      #   Parameters:
+      #     - DatabaseType
+      #     - InstallSQLDemoApp
+      #     - DBInstanceClass
+      #     - DBStorageInGiB
+      #     - DBMasterUsername
+      #     - DBMasterUserPassword
+      #     - DBMasterUserPasswordConfirm
+      #     - DeployMultiAZ
+      #     - DBBackupRetentionPeriod
+      #     - DBPreferredBackupWindow
+      #     - DBPreferredMaintenanceWindow
       - Label:
           default: Enterprise Server Demo Apps Configuration
         Parameters:
@@ -122,28 +122,28 @@ Metadata:
         default: Availability Zones
       BastionAccessSGID:
         default: Bastion Security Group ID
-      DatabaseType:
-        default: Database type
-      DBBackupRetentionPeriod:
-        default: Database backup retention period
-      DBInstanceClass:
-        default: Database instance class
-      DBMasterUserPassword:
-        default: Database Master password
-      DBMasterUserPasswordConfirm:
-        default: Re-enter the database Master password
-      DBMasterUsername:
-        default: Database Master username
-      DBPreferredBackupWindow:
-        default: Database preferred backup window
-      DBPreferredMaintenanceWindow:
-        default: Database preferred maintenance window
-      DBStorageInGiB:
-        default: Database allocated storage size
+      # DatabaseType:
+      #   default: Database type
+      # DBBackupRetentionPeriod:
+      #   default: Database backup retention period
+      # DBInstanceClass:
+      #   default: Database instance class
+      # DBMasterUserPassword:
+      #   default: Database Master password
+      # DBMasterUserPasswordConfirm:
+      #   default: Re-enter the database Master password
+      # DBMasterUsername:
+      #   default: Database Master username
+      # DBPreferredBackupWindow:
+      #   default: Database preferred backup window
+      # DBPreferredMaintenanceWindow:
+      #   default: Database preferred maintenance window
+      # DBStorageInGiB:
+      #   default: Database allocated storage size
       DemoAppsIngressCIDR:
         default: Allowed Demo Apps external access CIDR
-      DeployMultiAZ:
-        default: Deploy in multiple Availability Zones
+      # DeployMultiAZ:
+      #   default: Deploy in multiple Availability Zones
       DirectoryServiceID:
         default: Directory Service ID
       DomainAdminPassword:
@@ -172,20 +172,20 @@ Metadata:
         default: Resource 'Name' prefix
       ESS3BucketName:
         default: Enterprise Server S3 bucket name
-      FileshareType:
-        default: Fileshare type
-      FSInstanceType:
-        default: Enterprise Server Fileshare instance type
-      FSStorageInGiB:
-        default: Fileshare allocated storage size
-      FSVIEWUserPassword:
-        default: FSVIEW user password
-      FSVIEWUserPasswordConfirm:
-        default: Re-enter the FSVIEW user password
-      InstallFSDemoApp:
-        default: Install Fileshare Demo App
-      InstallSQLDemoApp:
-        default: Install SQLServer Demo App
+      # FileshareType:
+      #   default: Fileshare type
+      # FSInstanceType:
+      #   default: Enterprise Server Fileshare instance type
+      # FSStorageInGiB:
+      #   default: Fileshare allocated storage size
+      # FSVIEWUserPassword:
+      #   default: FSVIEW user password
+      # FSVIEWUserPasswordConfirm:
+      #   default: Re-enter the FSVIEW user password
+      # InstallFSDemoApp:
+      #   default: Install Fileshare Demo App
+      # InstallSQLDemoApp:
+      #   default: Install SQLServer Demo App
       InstallPACDemoApp:
         default: Install PAC Demo App
       KeyPairName:
@@ -210,8 +210,8 @@ Metadata:
         default: PAC database Master password
       PACDBMasterUserPasswordConfirm:
         default: Re-enter the PAC database Master password
-      PACDBStorageInGiB:
-        default: Database allocated storage size
+      # PACDBStorageInGiB:
+      #   default: Database allocated storage size
       PrivateSubnet1AID:
         default: Private Subnet 1A ID
       PrivateSubnet2AID:
@@ -251,85 +251,85 @@ Parameters:
     Type: 'AWS::EC2::SecurityGroup::Id'
     Description: >-
       The security group ID for access from the Bastion host.
-  DatabaseType:
-    AllowedValues:
-      - None
-      - Create-RDS-Remote-Database
-    Default: Create-RDS-Remote-Database
-    Description: >-
-      If you choose 'None', the remaining Database Configuration parameters are
-      ignored.
-    Type: String
-  DBBackupRetentionPeriod:
-    Description: >-
-      Select the number of days that Amazon RDS should retain automatic backups
-      of the DB instance. A backup retention period of zero days will disable
-      automated backups for the DB Instance.
-    Default: 30
-    MinValue: 0
-    MaxValue: 35
-    Type: Number
-  DBInstanceClass:
-    AllowedValues:
-      - db.r4.large
-      - db.r4.xlarge
-      - db.r4.2xlarge
-      - db.r4.4xlarge
-      - db.r2.8xlarge
-    Description: The type of Amazon RDS DB instance.
-    Default: db.r4.large
-    Type: String
-  DBMasterUsername:
-    Description: >-
-      Specify an alphanumeric string that defines the login ID for the master
-      user. Master user name must start with a letter. Must contain 1 to 64
-      alphanumeric characters.
-    AllowedPattern: >-
-      ^[a-zA-Z][a-zA-Z0-9]{1,64}$
-    ConstraintDescription: >-
-      Must start with a letter. Must contain 1 to 64 alphanumeric characters.
-    Default: DBAdmin
-    Type: String
-  DBMasterUserPassword:
-    AllowedPattern: >-
-      ^((?![\/"@])[^\x00-\x1F\x80-\x9F]){8,}$
-    ConstraintDescription: >-
-      Must be at least eight characters long, as in "mypassword". Can be any
-      printable ASCII character except "/", """, or "@".
-    Description: >-
-      The password for the DB master user. Must be at least eight characters
-      long, as in "mypassword". Can be any printable ASCII character 
-      except "/", """, or "@".
-    Type: String
-    NoEcho: true
-  DBMasterUserPasswordConfirm:
-    AllowedPattern: >-
-      ^((?![\/"@])[^\x00-\x1F\x80-\x9F]){8,}$
-    ConstraintDescription: >-
-      Must be at least eight characters long, as in "mypassword". Can be any
-      printable ASCII character except "/", """, or "@".
-    Description: >-
-      Confirm the password for the DB master user. Must be at least eight
-      characters long, as in "mypassword". Can be any printable ASCII character
-      except "/", """, or "@".
-    Type: String
-    NoEcho: true
-  DBPreferredBackupWindow:
-    Description: >-
-      (optional) Must be in the format hh24:mi-hh24:mi, in UTC. Must be at least 30
-      minutes, and must not conflict with the preferred maintenance window.
-    Type: String
-  DBPreferredMaintenanceWindow:
-    Description: >-
-      (optional) Must be in the format ddd:hh24:mi-ddd:hh24:mi, in UTC. Must be at least 30
-      minutes.
-    Type: String
-  DBStorageInGiB:
-    Type: Number
-    Description: Enter 20-16384 GiB.
-    MinValue: 20
-    MaxValue: 16384
-    Default: 100
+  # DatabaseType:
+  #   AllowedValues:
+  #     - None
+  #     - Create-RDS-Remote-Database
+  #   Default: Create-RDS-Remote-Database
+  #   Description: >-
+  #     If you choose 'None', the remaining Database Configuration parameters are
+  #     ignored.
+  #   Type: String
+  # DBBackupRetentionPeriod:
+  #   Description: >-
+  #     Select the number of days that Amazon RDS should retain automatic backups
+  #     of the DB instance. A backup retention period of zero days will disable
+  #     automated backups for the DB Instance.
+  #   Default: 30
+  #   MinValue: 0
+  #   MaxValue: 35
+  #   Type: Number
+  # DBInstanceClass:
+  #   AllowedValues:
+  #     - db.r4.large
+  #     - db.r4.xlarge
+  #     - db.r4.2xlarge
+  #     - db.r4.4xlarge
+  #     - db.r2.8xlarge
+  #   Description: The type of Amazon RDS DB instance.
+  #   Default: db.r4.large
+  #   Type: String
+  # DBMasterUsername:
+  #   Description: >-
+  #     Specify an alphanumeric string that defines the login ID for the master
+  #     user. Master user name must start with a letter. Must contain 1 to 64
+  #     alphanumeric characters.
+  #   AllowedPattern: >-
+  #     ^[a-zA-Z][a-zA-Z0-9]{1,64}$
+  #   ConstraintDescription: >-
+  #     Must start with a letter. Must contain 1 to 64 alphanumeric characters.
+  #   Default: DBAdmin
+  #   Type: String
+  # DBMasterUserPassword:
+  #   AllowedPattern: >-
+  #     ^((?![\/"@])[^\x00-\x1F\x80-\x9F]){8,}$
+  #   ConstraintDescription: >-
+  #     Must be at least eight characters long, as in "mypassword". Can be any
+  #     printable ASCII character except "/", """, or "@".
+  #   Description: >-
+  #     The password for the DB master user. Must be at least eight characters
+  #     long, as in "mypassword". Can be any printable ASCII character 
+  #     except "/", """, or "@".
+  #   Type: String
+  #   NoEcho: true
+  # DBMasterUserPasswordConfirm:
+  #   AllowedPattern: >-
+  #     ^((?![\/"@])[^\x00-\x1F\x80-\x9F]){8,}$
+  #   ConstraintDescription: >-
+  #     Must be at least eight characters long, as in "mypassword". Can be any
+  #     printable ASCII character except "/", """, or "@".
+  #   Description: >-
+  #     Confirm the password for the DB master user. Must be at least eight
+  #     characters long, as in "mypassword". Can be any printable ASCII character
+  #     except "/", """, or "@".
+  #   Type: String
+  #   NoEcho: true
+  # DBPreferredBackupWindow:
+  #   Description: >-
+  #     (optional) Must be in the format hh24:mi-hh24:mi, in UTC. Must be at least 30
+  #     minutes, and must not conflict with the preferred maintenance window.
+  #   Type: String
+  # DBPreferredMaintenanceWindow:
+  #   Description: >-
+  #     (optional) Must be in the format ddd:hh24:mi-ddd:hh24:mi, in UTC. Must be at least 30
+  #     minutes.
+  #   Type: String
+  # DBStorageInGiB:
+  #   Type: Number
+  #   Description: Enter 20-16384 GiB.
+  #   MinValue: 20
+  #   MaxValue: 16384
+  #   Default: 100
   DemoAppsIngressCIDR:
     AllowedPattern: >-
       ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$
@@ -338,14 +338,14 @@ Parameters:
       The allowed CIDR block for external access to the demo apps. The CIDR block
       parameter must be in the form x.x.x.x/x.
     Type: String
-  DeployMultiAZ:
-    AllowedValues:
-      - true
-      - false
-    Default: false
-    Description: >-
-      Choose 'true' to deploy the database across multiple Availability Zones.
-    Type: String
+  # DeployMultiAZ:
+  #   AllowedValues:
+  #     - true
+  #     - false
+  #   Default: false
+  #   Description: >-
+  #     Choose 'true' to deploy the database across multiple Availability Zones.
+  #   Type: String
   DirectoryServiceID:
     Type: String
     Description: >-
@@ -476,12 +476,12 @@ Parameters:
       except "/", """, or "@".
     Type: String
     NoEcho: true
-  PACDBStorageInGiB:
-    Type: Number
-    Description: Enter 20-16384 GiB.
-    MinValue: 20
-    MaxValue: 16384
-    Default: 100
+  # PACDBStorageInGiB:
+  #   Type: Number
+  #   Description: Enter 20-16384 GiB.
+  #   MinValue: 20
+  #   MaxValue: 16384
+  #   Default: 100
   ESInstanceType:
     AllowedValues:
       - c5.large
@@ -512,58 +512,58 @@ Parameters:
       numbers, lowercase letters, uppercase letters, and hyphens (-). It cannot
       start or end with a hyphen (-).
     Type: String
-  FileshareType:
-    AllowedValues:
-      - None
-      - Create-Remote-Fileshare-Server
-    Default: Create-Remote-Fileshare-Server
-    Description: >-
-      If you choose 'None', the remaining Fileshare Configuration parameters
-      are ignored.
-    Type: String
-  FSInstanceType:
-    AllowedValues:
-      - c5.large
-      - c5.xlarge
-      - c5.2xlarge
-      - c5.4xlarge
-    Description: The type of Enterprise Server Fileshare instance.
-    Default: c5.large
-    Type: String
-  FSStorageInGiB:
-    Default: 250
-    Description: Enter 1-16384 GiB.
-    MaxValue: 16384
-    MinValue: 1
-    Type: Number
-  FSVIEWUserPassword:
-    AllowedPattern: >-
-      ^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,32}$
-    Description: >-
-      The password for the FSVIEW user. Must contain 8 to 32 characters,
-      at least one uppercase letter, one lowercase letter, one number and
-      one special character.
-    ConstraintDescription: >-
-      Must contain 8 to 32 characters, at least one uppercase letter, one
-      lowercase letter, one number and one special character.
-    MaxLength: '32'
-    MinLength: '8'
-    NoEcho: true
-    Type: String
-  FSVIEWUserPasswordConfirm:
-    AllowedPattern: >-
-      ^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,32}$
-    Description: >-
-      Confirm the password for the FSVIEW user. Must contain 8 to 32 characters,
-      at least one uppercase letter, one lowercase letter, one number and
-      one special character.
-    ConstraintDescription: >-
-      Must contain 8 to 32 characters, at least one uppercase letter, one
-      lowercase letter, one number and one special character.
-    MaxLength: '32'
-    MinLength: '8'
-    NoEcho: true
-    Type: String
+  # FileshareType:
+  #   AllowedValues:
+  #     - None
+  #     - Create-Remote-Fileshare-Server
+  #   Default: Create-Remote-Fileshare-Server
+  #   Description: >-
+  #     If you choose 'None', the remaining Fileshare Configuration parameters
+  #     are ignored.
+  #   Type: String
+  # FSInstanceType:
+  #   AllowedValues:
+  #     - c5.large
+  #     - c5.xlarge
+  #     - c5.2xlarge
+  #     - c5.4xlarge
+  #   Description: The type of Enterprise Server Fileshare instance.
+  #   Default: c5.large
+  #   Type: String
+  # FSStorageInGiB:
+  #   Default: 250
+  #   Description: Enter 1-16384 GiB.
+  #   MaxValue: 16384
+  #   MinValue: 1
+  #   Type: Number
+  # FSVIEWUserPassword:
+  #   AllowedPattern: >-
+  #     ^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,32}$
+  #   Description: >-
+  #     The password for the FSVIEW user. Must contain 8 to 32 characters,
+  #     at least one uppercase letter, one lowercase letter, one number and
+  #     one special character.
+  #   ConstraintDescription: >-
+  #     Must contain 8 to 32 characters, at least one uppercase letter, one
+  #     lowercase letter, one number and one special character.
+  #   MaxLength: '32'
+  #   MinLength: '8'
+  #   NoEcho: true
+  #   Type: String
+  # FSVIEWUserPasswordConfirm:
+  #   AllowedPattern: >-
+  #     ^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,32}$
+  #   Description: >-
+  #     Confirm the password for the FSVIEW user. Must contain 8 to 32 characters,
+  #     at least one uppercase letter, one lowercase letter, one number and
+  #     one special character.
+  #   ConstraintDescription: >-
+  #     Must contain 8 to 32 characters, at least one uppercase letter, one
+  #     lowercase letter, one number and one special character.
+  #   MaxLength: '32'
+  #   MinLength: '8'
+  #   NoEcho: true
+  #   Type: String
   InstallPACDemoApp:
     Type: String
     AllowedValues:
@@ -573,24 +573,24 @@ Parameters:
     Description: >-
       Choose 'false' if you don't want to install the Enterprise Server PAC demo
       app.
-  InstallFSDemoApp:
-    Type: String
-    AllowedValues:
-      - true
-      - false
-    Default: true
-    Description: >-
-      Choose 'false' if you don't want to install the Enterprise Server Fileshare demo
-      app. Requires selection of the 'Create-Remote-Fileshare-Server' Fileshare type.
-  InstallSQLDemoApp:
-    AllowedValues:
-      - true
-      - false
-    Default: true
-    Description: >-
-      Choose 'false' if you don't want to install the Enterprise Server SQLServer demo
-      app. Requires selection of the 'Create-RDS-Remote-Database' Database type.
-    Type: String
+  # InstallFSDemoApp:
+  #   Type: String
+  #   AllowedValues:
+  #     - true
+  #     - false
+  #   Default: true
+  #   Description: >-
+  #     Choose 'false' if you don't want to install the Enterprise Server Fileshare demo
+  #     app. Requires selection of the 'Create-Remote-Fileshare-Server' Fileshare type.
+  # InstallSQLDemoApp:
+  #   AllowedValues:
+  #     - true
+  #     - false
+  #   Default: true
+  #   Description: >-
+  #     Choose 'false' if you don't want to install the Enterprise Server SQLServer demo
+  #     app. Requires selection of the 'Create-RDS-Remote-Database' Database type.
+  #   Type: String
   KeyPairName:
     Description: >-
       The name of an existing EC2 key pair. All instances will launch with this key pair.
@@ -717,12 +717,12 @@ Parameters:
     Description: ID of your existing VPC for deployment.
     Type: 'AWS::EC2::VPC::Id'
 Rules:
-  DBMasterUserPasswordMatchRule:
-    Assertions:
-      - Assert: !Equals
-          - !Ref DBMasterUserPassword
-          - !Ref DBMasterUserPasswordConfirm
-        AssertDescription: Database Master password values do not match.
+  # DBMasterUserPasswordMatchRule:
+  #   Assertions:
+  #     - Assert: !Equals
+  #         - !Ref DBMasterUserPassword
+  #         - !Ref DBMasterUserPasswordConfirm
+  #       AssertDescription: Database Master password values do not match.
   DomainAdminPasswordsMatchRule:
     Assertions:
       - Assert: !Equals
@@ -735,42 +735,42 @@ Rules:
           - !Ref ESDemoUserPassword
           - !Ref ESDemoUserPasswordConfirm
         AssertDescription: Enterprise Server Demo user password values do not match.
-  FSVIEWUserPasswordMatchRule:
-    Assertions:
-      - Assert: !Equals
-          - !Ref FSVIEWUserPassword
-          - !Ref FSVIEWUserPasswordConfirm
-        AssertDescription: FSVIEW user password values do not match.
+  # FSVIEWUserPasswordMatchRule:
+  #   Assertions:
+  #     - Assert: !Equals
+  #         - !Ref FSVIEWUserPassword
+  #         - !Ref FSVIEWUserPasswordConfirm
+  #       AssertDescription: FSVIEW user password values do not match.
   PACDBMasterUserPasswordMatchRule:
     Assertions:
       - Assert: !Equals
           - !Ref PACDBMasterUserPassword
           - !Ref PACDBMasterUserPasswordConfirm
         AssertDescription: The PAC database Master password values do not match.
-  InstallFSDemoAppRule:
-    RuleCondition: !Equals
-      - !Ref InstallFSDemoApp
-      - 'true'
-    Assertions:
-      - Assert: !Not
-          - !Equals
-            - !Ref FileshareType
-            - None
-        AssertDescription: >-
-          Either choose a Fileshare Type or select 'false' for Install Fileshare
-          Demo App parameter.
-  InstallSQLDemoAppRule:
-    RuleCondition: !Equals
-      - !Ref InstallSQLDemoApp
-      - 'true'
-    Assertions:
-      - Assert: !Not
-          - !Equals
-            - !Ref DatabaseType
-            - None
-        AssertDescription: >-
-          Either choose a Database Type or select 'false' for Install SQLServer
-          Demo App parameter.
+  # InstallFSDemoAppRule:
+  #   RuleCondition: !Equals
+  #     - !Ref InstallFSDemoApp
+  #     - 'true'
+  #   Assertions:
+  #     - Assert: !Not
+  #         - !Equals
+  #           - !Ref FileshareType
+  #           - None
+  #       AssertDescription: >-
+  #         Either choose a Fileshare Type or select 'false' for Install Fileshare
+  #         Demo App parameter.
+  # InstallSQLDemoAppRule:
+  #   RuleCondition: !Equals
+  #     - !Ref InstallSQLDemoApp
+  #     - 'true'
+  #   Assertions:
+  #     - Assert: !Not
+  #         - !Equals
+  #           - !Ref DatabaseType
+  #           - None
+  #       AssertDescription: >-
+  #         Either choose a Database Type or select 'false' for Install SQLServer
+  #         Demo App parameter.
   KeyPairsNotEmpty:
     Assertions:
       - Assert: !Not
@@ -791,40 +791,40 @@ Rules:
           - !Ref MFDSServiceAccountPassword
           - !Ref MFDSServiceAccountPasswordConfirm
         AssertDescription: The Micro Focus Directory Server, Service Account password values do not match.
-  RDSWinAthSupportedRegionRule:
-    RuleCondition: !Equals
-      - !Ref DatabaseType
-      - Create-RDS-Remote-Database
-    Assertions:
-      - Assert: !Contains
-          - - us-east-2          # US East (Ohio)
-            - us-east-1          # US East (N. Virginia)
-            # - us-west-1          # US West (N. California) --> RDS-WinAuth not supported 2020-Feb-07
-            - us-west-2          # US West (Oregon)
-            - ap-east-1          # Asia Pacific (Hong Kong)
-            # - ap-south-1         # Asia Pacific (Mumbai) --> RDS-WinAuth not supported 2020-Feb-07
-            - ap-northeast-3     # Asia Pacific (Osaka-Local)
-            - ap-northeast-2     # Asia Pacific (Seoul)
-            - ap-southeast-1     # Asia Pacific (Singapore)
-            - ap-southeast-2     # Asia Pacific (Sydney)
-            - ap-northeast-1     # Asia Pacific (Tokyo)
-            - ca-central-1       # Canada (Central)
-            - cn-north-1         # China (Beijing)
-            - cn-northwest-1     # China (Ningxia)
-            - eu-central-1       # Europe (Frankfurt)
-            - eu-west-1          # Europe (Ireland)
-            - eu-west-2          # Europe (London)
-            - eu-west-3          # Europe (Paris)
-            - eu-north-1         # Europe (Stockholm)
-            - me-south-1         # Middle East (Bahrain)
-            # - sa-east-1          # South America (Sao Paulo) --> RDS-WinAuth not supported 2020-Feb-07
-            # - us-gov-east-1      # AWS GovCloud (US-East) --> RDS-WinAuth not supported 2020-Feb-07
-            # - us-gov-west-1      # AWS GovCloud (US-West) --> RDS-WinAuth not supported 2020-Feb-07
-          - !Ref AWS::Region
-        AssertDescription: This Quick Start utilizes Amazon Relational Database Service (Amazon RDS) Windows
-          Authentication which is not available in the chosen region. Please refer to
-          https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_SQLServerWinAuth.html
-          for more details and launch the stack in one of the supported regions.
+  # RDSWinAthSupportedRegionRule:
+  #   RuleCondition: !Equals
+  #     - !Ref DatabaseType
+  #     - Create-RDS-Remote-Database
+  #   Assertions:
+  #     - Assert: !Contains
+  #         - - us-east-2          # US East (Ohio)
+  #           - us-east-1          # US East (N. Virginia)
+  #           # - us-west-1          # US West (N. California) --> RDS-WinAuth not supported 2020-Feb-07
+  #           - us-west-2          # US West (Oregon)
+  #           - ap-east-1          # Asia Pacific (Hong Kong)
+  #           # - ap-south-1         # Asia Pacific (Mumbai) --> RDS-WinAuth not supported 2020-Feb-07
+  #           - ap-northeast-3     # Asia Pacific (Osaka-Local)
+  #           - ap-northeast-2     # Asia Pacific (Seoul)
+  #           - ap-southeast-1     # Asia Pacific (Singapore)
+  #           - ap-southeast-2     # Asia Pacific (Sydney)
+  #           - ap-northeast-1     # Asia Pacific (Tokyo)
+  #           - ca-central-1       # Canada (Central)
+  #           - cn-north-1         # China (Beijing)
+  #           - cn-northwest-1     # China (Ningxia)
+  #           - eu-central-1       # Europe (Frankfurt)
+  #           - eu-west-1          # Europe (Ireland)
+  #           - eu-west-2          # Europe (London)
+  #           - eu-west-3          # Europe (Paris)
+  #           - eu-north-1         # Europe (Stockholm)
+  #           - me-south-1         # Middle East (Bahrain)
+  #           # - sa-east-1          # South America (Sao Paulo) --> RDS-WinAuth not supported 2020-Feb-07
+  #           # - us-gov-east-1      # AWS GovCloud (US-East) --> RDS-WinAuth not supported 2020-Feb-07
+  #           # - us-gov-west-1      # AWS GovCloud (US-West) --> RDS-WinAuth not supported 2020-Feb-07
+  #         - !Ref AWS::Region
+  #       AssertDescription: This Quick Start utilizes Amazon Relational Database Service (Amazon RDS) Windows
+  #         Authentication which is not available in the chosen region. Please refer to
+  #         https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_SQLServerWinAuth.html
+  #         for more details and launch the stack in one of the supported regions.
   ESSupportedRegionRule:
     Assertions:
       - Assert: !Contains
@@ -856,12 +856,12 @@ Rules:
           the chosen region. Please contact Micro Focus or launch into a different region.
 Conditions:
   UsingDefaultBucket: !Equals [!Ref QSS3BucketName, 'aws-quickstart']
-  CreateRDSRemoteDatabaseStack: !Equals
-    - !Ref DatabaseType
-    - Create-RDS-Remote-Database
-  CreateRemoteFileshareServerStack: !Equals
-    - !Ref FileshareType
-    - Create-Remote-Fileshare-Server
+  # CreateRDSRemoteDatabaseStack: !Equals
+  #   - !Ref DatabaseType
+  #   - Create-RDS-Remote-Database
+  # CreateRemoteFileshareServerStack: !Equals
+  #   - !Ref FileshareType
+  #   - Create-Remote-Fileshare-Server
   GovCloudCondition: !Equals
     - !Ref 'AWS::Region'
     - us-gov-west-1
@@ -869,19 +869,22 @@ Conditions:
     - !Equals
       - !Ref OperatorEmail
       - None
-  InstallingAtLeastOneDemoApp: !Or
-    - !Condition InstallingFSDemoApp
-    - !Condition InstallingSQLDemoApp
-    - !Condition InstallingPACDemoApp
+  InstallingAtLeastOneDemoApp: #!Or
+    # - !Condition InstallingFSDemoApp
+    # - !Condition InstallingSQLDemoApp
+    # - !Condition InstallingPACDemoApp
+    !Equals
+    - !Ref InstallPACDemoApp
+    - 'true'
   InstallingPACDemoApp: !Equals
     - !Ref InstallPACDemoApp
     - 'true'
-  InstallingFSDemoApp: !Equals
-    - !Ref InstallFSDemoApp
-    - 'true'
-  InstallingSQLDemoApp: !Equals
-    - !Ref InstallSQLDemoApp
-    - 'true'
+  # InstallingFSDemoApp: !Equals
+  #   - !Ref InstallFSDemoApp
+  #   - 'true'
+  # InstallingSQLDemoApp: !Equals
+  #   - !Ref InstallSQLDemoApp
+  #   - 'true'
   NamePrefixIsAWSStackname: !Equals
     - !Ref ESResourceNamePrefix
     - 'AWS::StackName'
@@ -906,12 +909,12 @@ Conditions:
   Start2WindowsInstances: !And
     - !Condition Start2Instances
     - !Condition OSWindows
-  CreateWinRemoteFileshareStack: !And
-    - !Condition CreateRemoteFileshareServerStack
-    - !Condition OSWindows
-  CreateRedhatRemoteFileshareStack: !And
-    - !Condition CreateRemoteFileshareServerStack
-    - !Condition OSRedhat
+  # CreateWinRemoteFileshareStack: !And
+  #   - !Condition CreateRemoteFileshareServerStack
+  #   - !Condition OSWindows
+  # CreateRedhatRemoteFileshareStack: !And
+  #   - !Condition CreateRemoteFileshareServerStack
+  #   - !Condition OSRedhat
 Resources:
   EMailNotificationTopic:
     Type: 'AWS::SNS::Topic'
@@ -933,108 +936,108 @@ Resources:
               - !Sub '${AWS::StackName}-'
               - !Sub '${ESResourceNamePrefix}-'
       RetentionInDays: !Ref ESCWLogGroupRetentionInDays
-  RemoteDatabaseServerStack:
-    Type: 'AWS::CloudFormation::Stack'
-    Condition: CreateRDSRemoteDatabaseStack
-    Properties:
-      TemplateURL: !Sub
-        - 'https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}templates/mf-db-template.yaml'
-        - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
-          S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
-      Parameters:
-        DBBackupRetentionPeriod: !Ref DBBackupRetentionPeriod
-        DBInstanceClass: !Ref DBInstanceClass
-        DBMasterUsername: !Ref DBMasterUsername
-        DBMasterUserPassword: !Ref DBMasterUserPassword
-        DBPreferredBackupWindow: !Ref DBPreferredBackupWindow
-        DBPreferredMaintenanceWindow: !Ref DBPreferredMaintenanceWindow
-        DBStorageInGiB: !Ref DBStorageInGiB
-        DeployMultiAZ: !Ref DeployMultiAZ
-        DirectoryServiceID: !Ref DirectoryServiceID
-        ESClientAccessSGID: !Ref ESInstance1ClientAccessSecurityGroup
-        ESResourceNamePrefix: !Ref ESResourceNamePrefix
-        NotificationARN: !If
-          - HaveOperatorEmail
-          - !Ref EMailNotificationTopic
-          - !Ref 'AWS::NoValue'
-        PrivateSubnet1AID: !Ref PrivateSubnet1AID
-        PrivateSubnet2AID: !Ref PrivateSubnet2AID
-        VPCID: !Ref VPCID
-  RemoteFileshareServerStack:
-    Type: 'AWS::CloudFormation::Stack'
-    Condition: CreateRedhatRemoteFileshareStack
-    Properties:
-      TemplateURL: !Sub
-        - 'https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}templates/mf-fs-redhat-template.yaml'
-        - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
-          S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
-      Parameters:
-        AvailabilityZones: !Join
-          - ','
-          - !Ref AvailabilityZones
-        DomainAdminPassword: !Ref DomainAdminPassword
-        DomainDNSName: !Ref DomainDNSName
-        DomainMemberSGID: !Ref DomainMemberSGID
-        ESCWLogGroup: !Ref ESCWLogGroup
-        ESLicenseFilename: !Ref ESLicenseFilename
-        ESResourceNamePrefix: !Ref ESResourceNamePrefix
-        ESS3BucketName: !Ref ESS3BucketName
-        FSClientAccessSGID: !Ref ESInstance1ClientAccessSecurityGroup
-        FSInstanceType: !Ref FSInstanceType
-        FSServerName: FSServer
-        FSStorageInGiB: !Ref FSStorageInGiB
-        FSVIEWUserPassword: !Ref FSVIEWUserPassword
-        InstallDemoApps: !Ref InstallFSDemoApp
-        KeyPairName: !Ref KeyPairName
-        LicenseAgreement: !Ref LicenseAgreement
-        NotificationARN: !If
-          - HaveOperatorEmail
-          - !Ref EMailNotificationTopic
-          - !Ref 'AWS::NoValue'
-        PrivateSubnet1AID: !Ref PrivateSubnet1AID
-        QSS3BucketName: !Ref QSS3BucketName
-        QSS3BucketRegion: !Ref QSS3BucketRegion
-        QSS3KeyPrefix: !Ref QSS3KeyPrefix
-        BastionAccessSGID: !Ref BastionAccessSGID
-        VPCID: !Ref VPCID
-  RemoteFileshareWinServerStack:
-    Type: 'AWS::CloudFormation::Stack'
-    Condition: CreateWinRemoteFileshareStack
-    Properties:
-      TemplateURL: !Sub
-        - 'https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}templates/mf-fs-template.yaml'
-        - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
-          S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
-      Parameters:
-        AvailabilityZones: !Join
-          - ','
-          - !Ref AvailabilityZones
-        DomainAdminPassword: !Ref DomainAdminPassword
-        DomainDNSName: !Ref DomainDNSName
-        DomainMemberSGID: !Ref DomainMemberSGID
-        DomainNetBIOSName: !Ref DomainNetBIOSName
-        ESCWLogGroup: !Ref ESCWLogGroup
-        ESLicenseFilename: !Ref ESLicenseFilename
-        ESResourceNamePrefix: !Ref ESResourceNamePrefix
-        ESS3BucketName: !Ref ESS3BucketName
-        FSClientAccessSGID: !Ref ESInstance1ClientAccessSecurityGroup
-        FSInstanceType: !Ref FSInstanceType
-        FSServerName: FSServer
-        FSStorageInGiB: !Ref FSStorageInGiB
-        FSVIEWUserPassword: !Ref FSVIEWUserPassword
-        InstallDemoApps: !Ref InstallFSDemoApp
-        KeyPairName: !Ref KeyPairName
-        LicenseAgreement: !Ref LicenseAgreement
-        NotificationARN: !If
-          - HaveOperatorEmail
-          - !Ref EMailNotificationTopic
-          - !Ref 'AWS::NoValue'
-        PrivateSubnet1AID: !Ref PrivateSubnet1AID
-        QSS3BucketName: !Ref QSS3BucketName
-        QSS3BucketRegion: !Ref QSS3BucketRegion
-        QSS3KeyPrefix: !Ref QSS3KeyPrefix
-        RDGWAccessSGID: !Ref RDGWAccessSGID
-        VPCID: !Ref VPCID
+  # RemoteDatabaseServerStack:
+  #   Type: 'AWS::CloudFormation::Stack'
+  #   Condition: CreateRDSRemoteDatabaseStack
+  #   Properties:
+  #     TemplateURL: !Sub
+  #       - 'https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}templates/mf-db-template.yaml'
+  #       - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
+  #         S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
+  #     Parameters:
+  #       DBBackupRetentionPeriod: !Ref DBBackupRetentionPeriod
+  #       DBInstanceClass: !Ref DBInstanceClass
+  #       DBMasterUsername: !Ref DBMasterUsername
+  #       DBMasterUserPassword: !Ref DBMasterUserPassword
+  #       DBPreferredBackupWindow: !Ref DBPreferredBackupWindow
+  #       DBPreferredMaintenanceWindow: !Ref DBPreferredMaintenanceWindow
+  #       DBStorageInGiB: !Ref DBStorageInGiB
+  #       DeployMultiAZ: !Ref DeployMultiAZ
+  #       DirectoryServiceID: !Ref DirectoryServiceID
+  #       ESClientAccessSGID: !Ref ESInstance1ClientAccessSecurityGroup
+  #       ESResourceNamePrefix: !Ref ESResourceNamePrefix
+  #       NotificationARN: !If
+  #         - HaveOperatorEmail
+  #         - !Ref EMailNotificationTopic
+  #         - !Ref 'AWS::NoValue'
+  #       PrivateSubnet1AID: !Ref PrivateSubnet1AID
+  #       PrivateSubnet2AID: !Ref PrivateSubnet2AID
+  #       VPCID: !Ref VPCID
+  # RemoteFileshareServerStack:
+  #   Type: 'AWS::CloudFormation::Stack'
+  #   Condition: CreateRedhatRemoteFileshareStack
+  #   Properties:
+  #     TemplateURL: !Sub
+  #       - 'https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}templates/mf-fs-redhat-template.yaml'
+  #       - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
+  #         S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
+  #     Parameters:
+  #       AvailabilityZones: !Join
+  #         - ','
+  #         - !Ref AvailabilityZones
+  #       DomainAdminPassword: !Ref DomainAdminPassword
+  #       DomainDNSName: !Ref DomainDNSName
+  #       DomainMemberSGID: !Ref DomainMemberSGID
+  #       ESCWLogGroup: !Ref ESCWLogGroup
+  #       ESLicenseFilename: !Ref ESLicenseFilename
+  #       ESResourceNamePrefix: !Ref ESResourceNamePrefix
+  #       ESS3BucketName: !Ref ESS3BucketName
+  #       FSClientAccessSGID: !Ref ESInstance1ClientAccessSecurityGroup
+  #       FSInstanceType: !Ref FSInstanceType
+  #       FSServerName: FSServer
+  #       FSStorageInGiB: !Ref FSStorageInGiB
+  #       FSVIEWUserPassword: !Ref FSVIEWUserPassword
+  #       InstallDemoApps: !Ref InstallFSDemoApp
+  #       KeyPairName: !Ref KeyPairName
+  #       LicenseAgreement: !Ref LicenseAgreement
+  #       NotificationARN: !If
+  #         - HaveOperatorEmail
+  #         - !Ref EMailNotificationTopic
+  #         - !Ref 'AWS::NoValue'
+  #       PrivateSubnet1AID: !Ref PrivateSubnet1AID
+  #       QSS3BucketName: !Ref QSS3BucketName
+  #       QSS3BucketRegion: !Ref QSS3BucketRegion
+  #       QSS3KeyPrefix: !Ref QSS3KeyPrefix
+  #       BastionAccessSGID: !Ref BastionAccessSGID
+  #       VPCID: !Ref VPCID
+  # RemoteFileshareWinServerStack:
+  #   Type: 'AWS::CloudFormation::Stack'
+  #   Condition: CreateWinRemoteFileshareStack
+  #   Properties:
+  #     TemplateURL: !Sub
+  #       - 'https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}templates/mf-fs-template.yaml'
+  #       - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
+  #         S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
+  #     Parameters:
+  #       AvailabilityZones: !Join
+  #         - ','
+  #         - !Ref AvailabilityZones
+  #       DomainAdminPassword: !Ref DomainAdminPassword
+  #       DomainDNSName: !Ref DomainDNSName
+  #       DomainMemberSGID: !Ref DomainMemberSGID
+  #       DomainNetBIOSName: !Ref DomainNetBIOSName
+  #       ESCWLogGroup: !Ref ESCWLogGroup
+  #       ESLicenseFilename: !Ref ESLicenseFilename
+  #       ESResourceNamePrefix: !Ref ESResourceNamePrefix
+  #       ESS3BucketName: !Ref ESS3BucketName
+  #       FSClientAccessSGID: !Ref ESInstance1ClientAccessSecurityGroup
+  #       FSInstanceType: !Ref FSInstanceType
+  #       FSServerName: FSServer
+  #       FSStorageInGiB: !Ref FSStorageInGiB
+  #       FSVIEWUserPassword: !Ref FSVIEWUserPassword
+  #       InstallDemoApps: !Ref InstallFSDemoApp
+  #       KeyPairName: !Ref KeyPairName
+  #       LicenseAgreement: !Ref LicenseAgreement
+  #       NotificationARN: !If
+  #         - HaveOperatorEmail
+  #         - !Ref EMailNotificationTopic
+  #         - !Ref 'AWS::NoValue'
+  #       PrivateSubnet1AID: !Ref PrivateSubnet1AID
+  #       QSS3BucketName: !Ref QSS3BucketName
+  #       QSS3BucketRegion: !Ref QSS3BucketRegion
+  #       QSS3KeyPrefix: !Ref QSS3KeyPrefix
+  #       RDGWAccessSGID: !Ref RDGWAccessSGID
+  #       VPCID: !Ref VPCID
   AuroraServerStack:
     Type: 'AWS::CloudFormation::Stack'
     Condition: InstallingPACDemoApp
@@ -1122,53 +1125,53 @@ Resources:
       Path: /
       Roles:
         - !Ref ESInstanceRole
-  RDSRemoteDatabaseStackCreateWaitHandle:
-    Condition: CreateRDSRemoteDatabaseStack
-    DependsOn: RemoteDatabaseServerStack
-    Type: 'AWS::CloudFormation::WaitConditionHandle'
+  # RDSRemoteDatabaseStackCreateWaitHandle:
+  #   Condition: CreateRDSRemoteDatabaseStack
+  #   DependsOn: RemoteDatabaseServerStack
+  #   Type: 'AWS::CloudFormation::WaitConditionHandle'
   NoRDSRemoteDatabaseStackCreateWaitHandle:
     Type: 'AWS::CloudFormation::WaitConditionHandle'
-  RDSRemoteDatabaseStackCreateWaitCondition:
-    Type: 'AWS::CloudFormation::WaitCondition'
-    Properties:
-      Handle: !If
-        - CreateRDSRemoteDatabaseStack
-        - !Ref RDSRemoteDatabaseStackCreateWaitHandle
-        - !Ref NoRDSRemoteDatabaseStackCreateWaitHandle
-      Timeout: '1'
-      Count: 0
-  FSServerWinCreateWaitHandle:
-    Condition: CreateWinRemoteFileshareStack
-    DependsOn:
-      - RemoteFileshareWinServerStack
-      - RDSRemoteDatabaseStackCreateWaitCondition
-    Type: 'AWS::CloudFormation::WaitConditionHandle'
+  # RDSRemoteDatabaseStackCreateWaitCondition:
+  #   Type: 'AWS::CloudFormation::WaitCondition'
+  #   Properties:
+  #     Handle: !If
+  #       - CreateRDSRemoteDatabaseStack
+  #       - !Ref RDSRemoteDatabaseStackCreateWaitHandle
+  #       - !Ref NoRDSRemoteDatabaseStackCreateWaitHandle
+  #     Timeout: '1'
+  #     Count: 0
+  # FSServerWinCreateWaitHandle:
+  #   Condition: CreateWinRemoteFileshareStack
+  #   DependsOn:
+  #     - RemoteFileshareWinServerStack
+  #     - RDSRemoteDatabaseStackCreateWaitCondition
+  #   Type: 'AWS::CloudFormation::WaitConditionHandle'
   NoFSServerWaitHandle:
     Type: 'AWS::CloudFormation::WaitConditionHandle'
-  FSServerWinWaitCondition:
-    Type: 'AWS::CloudFormation::WaitCondition'
-    Properties:
-      Handle: !If
-        - CreateWinRemoteFileshareStack
-        - !Ref FSServerWinCreateWaitHandle
-        - !Ref NoFSServerWaitHandle
-      Timeout: '1'
-      Count: 0
-  FSServerRedhatCreateWaitHandle:
-    Condition: CreateRedhatRemoteFileshareStack
-    DependsOn:
-      - RemoteFileshareServerStack
-      - RDSRemoteDatabaseStackCreateWaitCondition
-    Type: 'AWS::CloudFormation::WaitConditionHandle'
-  FSServerRedhatWaitCondition:
-    Type: 'AWS::CloudFormation::WaitCondition'
-    Properties:
-      Handle: !If
-        - CreateRedhatRemoteFileshareStack
-        - !Ref FSServerRedhatCreateWaitHandle
-        - !Ref NoFSServerWaitHandle
-      Timeout: '1'
-      Count: 0
+  # FSServerWinWaitCondition:
+  #   Type: 'AWS::CloudFormation::WaitCondition'
+  #   Properties:
+  #     Handle: !If
+  #       - CreateWinRemoteFileshareStack
+  #       - !Ref FSServerWinCreateWaitHandle
+  #       - !Ref NoFSServerWaitHandle
+  #     Timeout: '1'
+  #     Count: 0
+  # FSServerRedhatCreateWaitHandle:
+  #   Condition: CreateRedhatRemoteFileshareStack
+  #   DependsOn:
+  #     - RemoteFileshareServerStack
+  #     - RDSRemoteDatabaseStackCreateWaitCondition
+  #   Type: 'AWS::CloudFormation::WaitConditionHandle'
+  # FSServerRedhatWaitCondition:
+  #   Type: 'AWS::CloudFormation::WaitCondition'
+  #   Properties:
+  #     Handle: !If
+  #       - CreateRedhatRemoteFileshareStack
+  #       - !Ref FSServerRedhatCreateWaitHandle
+  #       - !Ref NoFSServerWaitHandle
+  #     Timeout: '1'
+  #     Count: 0
   # Security Group for (client/application) ingress traffic into Enterprise Server 1
   ESInstance1ClientAccessSecurityGroup:
     Type: 'AWS::EC2::SecurityGroup'
@@ -1210,22 +1213,22 @@ Resources:
             ToPort: 4
             CidrIp: !Ref DemoAppsIngressCIDR
           - !Ref 'AWS::NoValue'
-        - !If
-          - InstallingFSDemoApp
-          - Description: Fileshare Bank Demo Application TN3270 Listener Ingress
-            IpProtocol: tcp
-            FromPort: 5555
-            ToPort: 5555
-            CidrIp: !Ref DemoAppsIngressCIDR
-          - !Ref 'AWS::NoValue'
-        - !If
-          - InstallingSQLDemoApp
-          - Description: SQLServer Bank Demo Application TN3270 Listener Ingress
-            IpProtocol: tcp
-            FromPort: 5556
-            ToPort: 5556
-            CidrIp: !Ref DemoAppsIngressCIDR
-          - !Ref 'AWS::NoValue'
+        # - !If
+        #   - InstallingFSDemoApp
+        #   - Description: Fileshare Bank Demo Application TN3270 Listener Ingress
+        #     IpProtocol: tcp
+        #     FromPort: 5555
+        #     ToPort: 5555
+        #     CidrIp: !Ref DemoAppsIngressCIDR
+        #   - !Ref 'AWS::NoValue'
+        # - !If
+        #   - InstallingSQLDemoApp
+        #   - Description: SQLServer Bank Demo Application TN3270 Listener Ingress
+        #     IpProtocol: tcp
+        #     FromPort: 5556
+        #     ToPort: 5556
+        #     CidrIp: !Ref DemoAppsIngressCIDR
+        #   - !Ref 'AWS::NoValue'
         - !If
           - InstallingPACDemoApp
           - Description: PAC Bank Demo Application TN3270 Listener Ingress
@@ -1264,10 +1267,10 @@ Resources:
       VpcSecurityGroupIds: [!Ref ElasticacheSecurityGroup,]
   BootstrapStack:
     Type: 'AWS::CloudFormation::Stack'
-    DependsOn:
-      - FSServerRedhatWaitCondition
-      - FSServerWinWaitCondition
-      - RDSRemoteDatabaseStackCreateWaitCondition
+    # DependsOn:
+    #   - FSServerRedhatWaitCondition
+    #   - FSServerWinWaitCondition
+    #   - RDSRemoteDatabaseStackCreateWaitCondition
     Properties:
       TemplateURL: !Sub
         - 'https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}templates/mf-es-bootstrap-template.yaml'
@@ -1277,8 +1280,8 @@ Resources:
         AvailabilityZones: !Join
           - ','
           - !Ref AvailabilityZones
-        DBMasterUsername: !Ref DBMasterUsername
-        DBMasterUserPassword: !Ref DBMasterUserPassword
+        # DBMasterUsername: !Ref DBMasterUsername
+        # DBMasterUserPassword: !Ref DBMasterUserPassword
         PACDBMasterUsername: !Ref PACDBMasterUsername
         PACDBMasterUserPassword: !Ref PACDBMasterUserPassword
         DomainAdminPassword: !Ref DomainAdminPassword
@@ -1287,22 +1290,22 @@ Resources:
         DomainNetBIOSName: !Ref DomainNetBIOSName
         ESDemoUserPassword: !Ref ESDemoUserPassword
         ESClientAccessSGID: !Ref ESInstance1ClientAccessSecurityGroup
-        ESDatabaseEndpointAddress: !If
-          - CreateRDSRemoteDatabaseStack
-          - !GetAtt RemoteDatabaseServerStack.Outputs.ESDatabaseEndpointAddress
-          - !Ref 'AWS::NoValue'
+        # ESDatabaseEndpointAddress: !If
+        #   - CreateRDSRemoteDatabaseStack
+        #   - !GetAtt RemoteDatabaseServerStack.Outputs.ESDatabaseEndpointAddress
+        #   - !Ref 'AWS::NoValue'
         ESPACDatabaseEndpointAddress: !If
           - InstallingPACDemoApp
           - !GetAtt AuroraServerStack.Outputs.ESPACDatabaseEndpointAddress
           - !Ref 'AWS::NoValue'
         ESS3BucketName: !Ref ESS3BucketName
-        FileshareDataFolderUNC: !If
-          - CreateWinRemoteFileshareStack
-          - !GetAtt RemoteFileshareWinServerStack.Outputs.FileshareDataFolderUNC
-          - !Ref 'AWS::NoValue'
-        InstallFSDemoApp: !Ref InstallFSDemoApp
+        # FileshareDataFolderUNC: !If
+        #   - CreateWinRemoteFileshareStack
+        #   - !GetAtt RemoteFileshareWinServerStack.Outputs.FileshareDataFolderUNC
+        #   - !Ref 'AWS::NoValue'
+        # InstallFSDemoApp: !Ref InstallFSDemoApp
         InstallPACDemoApp: !Ref InstallPACDemoApp
-        InstallSQLDemoApp: !Ref InstallSQLDemoApp
+        # InstallSQLDemoApp: !Ref InstallSQLDemoApp
         KeyPairName: !Ref KeyPairName
         MFDSServiceAccountName: !Ref MFDSServiceAccountName
         MFDSServiceAccountPassword: !Ref MFDSServiceAccountPassword
@@ -1366,7 +1369,7 @@ Resources:
         DomainAdminPassword: !Ref DomainAdminPassword
         DomainDNSName: !Ref DomainDNSName
         DomainMemberSGID: !Ref DomainMemberSGID
-        DBMasterUserPassword: !Ref DBMasterUserPassword
+        # DBMasterUserPassword: !Ref DBMasterUserPassword
         EMailNotificationTopic: !If
           - HaveOperatorEmail
           - !Ref EMailNotificationTopic
@@ -1377,9 +1380,9 @@ Resources:
         ESInstanceType: !Ref ESInstanceType
         ESLicenseFilename: !Ref ESLicenseFilename
         ESS3BucketName: !Ref ESS3BucketName
-        InstallFSDemoApp: !Ref InstallFSDemoApp
+        # InstallFSDemoApp: !Ref InstallFSDemoApp
         InstallPACDemoApp: !Ref InstallPACDemoApp
-        InstallSQLDemoApp: !Ref InstallSQLDemoApp
+        # InstallSQLDemoApp: !Ref InstallSQLDemoApp
         AdditionalESStorageinGiB: !Ref AdditionalESStorageinGiB
         KeyPairName: !Ref KeyPairName
         LicenseAgreement: !Ref LicenseAgreement
@@ -1407,7 +1410,7 @@ Resources:
         DomainAdminPassword: !Ref DomainAdminPassword
         DomainDNSName: !Ref DomainDNSName
         DomainMemberSGID: !Ref DomainMemberSGID
-        DBMasterUserPassword: !Ref DBMasterUserPassword
+        # DBMasterUserPassword: !Ref DBMasterUserPassword
         EMailNotificationTopic: !If
           - HaveOperatorEmail
           - !Ref EMailNotificationTopic
@@ -1418,9 +1421,9 @@ Resources:
         ESInstanceType: !Ref ESInstanceType
         ESLicenseFilename: !Ref ESLicenseFilename
         ESS3BucketName: !Ref ESS3BucketName
-        InstallFSDemoApp: !Ref InstallFSDemoApp
+        # InstallFSDemoApp: !Ref InstallFSDemoApp
         InstallPACDemoApp: !Ref InstallPACDemoApp
-        InstallSQLDemoApp: !Ref InstallSQLDemoApp
+        # InstallSQLDemoApp: !Ref InstallSQLDemoApp
         AdditionalESStorageinGiB: !Ref AdditionalESStorageinGiB
         KeyPairName: !Ref KeyPairName
         LicenseAgreement: !Ref LicenseAgreement
@@ -1455,17 +1458,17 @@ Resources:
           - !Ref 'AWS::NoValue'
         ESClientAccessSGID: !Ref ESInstance1ClientAccessSecurityGroup
         ESCWLogGroup: !Ref ESCWLogGroup
-        ESDatabaseEndpointAddress: !If
-          - CreateRDSRemoteDatabaseStack
-          - !GetAtt RemoteDatabaseServerStack.Outputs.ESDatabaseEndpointAddress
-          - !Ref 'AWS::NoValue'
+        # ESDatabaseEndpointAddress: !If
+        #   - CreateRDSRemoteDatabaseStack
+        #   - !GetAtt RemoteDatabaseServerStack.Outputs.ESDatabaseEndpointAddress
+        #   - !Ref 'AWS::NoValue'
         ESInstanceName: ESServer1
         ESInstanceType: !Ref ESInstanceType
         ESLicenseFilename: !Ref ESLicenseFilename
         ESS3BucketName: !Ref ESS3BucketName
-        InstallFSDemoApp: !Ref InstallFSDemoApp
+        # InstallFSDemoApp: !Ref InstallFSDemoApp
         InstallPACDemoApp: !Ref InstallPACDemoApp
-        InstallSQLDemoApp: !Ref InstallSQLDemoApp
+        # InstallSQLDemoApp: !Ref InstallSQLDemoApp
         AdditionalESStorageinGiB: !Ref AdditionalESStorageinGiB
         KeyPairName: !Ref KeyPairName
         LicenseAgreement: !Ref LicenseAgreement
@@ -1502,17 +1505,17 @@ Resources:
           - !Ref 'AWS::NoValue'
         ESClientAccessSGID: !Ref ESInstance1ClientAccessSecurityGroup
         ESCWLogGroup: !Ref ESCWLogGroup
-        ESDatabaseEndpointAddress: !If
-          - CreateRDSRemoteDatabaseStack
-          - !GetAtt RemoteDatabaseServerStack.Outputs.ESDatabaseEndpointAddress
-          - !Ref 'AWS::NoValue'
+        # ESDatabaseEndpointAddress: !If
+        #   - CreateRDSRemoteDatabaseStack
+        #   - !GetAtt RemoteDatabaseServerStack.Outputs.ESDatabaseEndpointAddress
+        #   - !Ref 'AWS::NoValue'
         ESInstanceName: ESServer2
         ESInstanceType: !Ref ESInstanceType
         ESLicenseFilename: !Ref ESLicenseFilename
         ESS3BucketName: !Ref ESS3BucketName
-        InstallFSDemoApp: !Ref InstallFSDemoApp
+        # InstallFSDemoApp: !Ref InstallFSDemoApp
         InstallPACDemoApp: !Ref InstallPACDemoApp
-        InstallSQLDemoApp: !Ref InstallSQLDemoApp
+        # InstallSQLDemoApp: !Ref InstallSQLDemoApp
         AdditionalESStorageinGiB: !Ref AdditionalESStorageinGiB
         KeyPairName: !Ref KeyPairName
         LicenseAgreement: !Ref LicenseAgreement
@@ -1548,118 +1551,118 @@ Resources:
                   - !Sub '${AWS::StackName}-'
                   - !Sub '${ESResourceNamePrefix}-'
       Type: network
-  FSDemoApp3270AppsLoadBalancerTargetGroup:
-    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
-    Condition: InstallingFSDemoApp
-    Properties:
-      HealthCheckIntervalSeconds: 30
-      HealthCheckPort: "5555"
-      HealthCheckProtocol: TCP
-      HealthCheckTimeoutSeconds: 10
-      HealthyThresholdCount: 3
-      Port: 5555
-      Protocol: TCP
-      Tags:
-        - Key: Name
-          Value: !Sub
-            - '${StackNamePrefix}FSDemoApp3270'
-            - StackNamePrefix: !If
-                - NamePrefixIsUndefined
-                - ''
-                - !If
-                  - NamePrefixIsAWSStackname
-                  - !Sub '${AWS::StackName}-'
-                  - !Sub '${ESResourceNamePrefix}-'
-      Targets:
-        - !If
-          - OSRedhat
-          - Id: !GetAtt ESInstanceStack1.Outputs.ESInstanceID
-            Port: 5555
-          - !Ref 'AWS::NoValue'
-        - !If
-          - Start2RedhatInstances
-          - Id: !GetAtt ESInstanceStack2.Outputs.ESInstanceID
-            Port: 5555
-          - !Ref 'AWS::NoValue'
-        - !If
-          - OSWindows
-          - Id: !GetAtt ESInstanceWinStack1.Outputs.ESInstanceID
-            Port: 5555
-          - !Ref 'AWS::NoValue'
-        - !If
-          - Start2WindowsInstances
-          - Id: !GetAtt ESInstanceWinStack2.Outputs.ESInstanceID
-            Port: 5555
-          - !Ref 'AWS::NoValue'
-      TargetType: instance
-      UnhealthyThresholdCount: 3
-      VpcId: !Ref VPCID
-  FSDemoApp3270AppsLoadBalancerListener:
-    Type: 'AWS::ElasticLoadBalancingV2::Listener'
-    Condition: InstallingFSDemoApp
-    Properties:
-      DefaultActions:
-        - Type: forward
-          TargetGroupArn: !Ref FSDemoApp3270AppsLoadBalancerTargetGroup
-      LoadBalancerArn: !Ref ESDemoAppsPublicNetworkLoadBalancer
-      Port: 5555
-      Protocol: TCP
-  SQLDemoApp3270AppsLoadBalancerTargetGroup:
-    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
-    Condition: InstallingSQLDemoApp
-    Properties:
-      HealthCheckIntervalSeconds: 30
-      HealthCheckPort: "5556"
-      HealthCheckProtocol: TCP
-      HealthCheckTimeoutSeconds: 10
-      HealthyThresholdCount: 3
-      Port: 5556
-      Protocol: TCP
-      Tags:
-        - Key: Name
-          Value: !Sub
-            - '${StackNamePrefix}SQLDemoApp3270'
-            - StackNamePrefix: !If
-                - NamePrefixIsUndefined
-                - ''
-                - !If
-                  - NamePrefixIsAWSStackname
-                  - !Sub '${AWS::StackName}-'
-                  - !Sub '${ESResourceNamePrefix}-'
-      Targets:
-        - !If
-          - OSRedhat
-          - Id: !GetAtt ESInstanceStack1.Outputs.ESInstanceID
-            Port: 5556
-          - !Ref 'AWS::NoValue'
-        - !If
-          - Start2RedhatInstances
-          - Id: !GetAtt ESInstanceStack2.Outputs.ESInstanceID
-            Port: 5556
-          - !Ref 'AWS::NoValue'
-        - !If
-          - OSWindows
-          - Id: !GetAtt ESInstanceWinStack1.Outputs.ESInstanceID
-            Port: 5556
-          - !Ref 'AWS::NoValue'
-        - !If
-          - Start2WindowsInstances
-          - Id: !GetAtt ESInstanceWinStack2.Outputs.ESInstanceID
-            Port: 5556
-          - !Ref 'AWS::NoValue'
-      TargetType: instance
-      UnhealthyThresholdCount: 3
-      VpcId: !Ref VPCID
-  SQLDemoApp3270AppsLoadBalancerListener:
-    Type: 'AWS::ElasticLoadBalancingV2::Listener'
-    Condition: InstallingSQLDemoApp
-    Properties:
-      DefaultActions:
-        - Type: forward
-          TargetGroupArn: !Ref SQLDemoApp3270AppsLoadBalancerTargetGroup
-      LoadBalancerArn: !Ref ESDemoAppsPublicNetworkLoadBalancer
-      Port: 5556
-      Protocol: TCP
+  # FSDemoApp3270AppsLoadBalancerTargetGroup:
+  #   Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+  #   Condition: InstallingFSDemoApp
+  #   Properties:
+  #     HealthCheckIntervalSeconds: 30
+  #     HealthCheckPort: "5555"
+  #     HealthCheckProtocol: TCP
+  #     HealthCheckTimeoutSeconds: 10
+  #     HealthyThresholdCount: 3
+  #     Port: 5555
+  #     Protocol: TCP
+  #     Tags:
+  #       - Key: Name
+  #         Value: !Sub
+  #           - '${StackNamePrefix}FSDemoApp3270'
+  #           - StackNamePrefix: !If
+  #               - NamePrefixIsUndefined
+  #               - ''
+  #               - !If
+  #                 - NamePrefixIsAWSStackname
+  #                 - !Sub '${AWS::StackName}-'
+  #                 - !Sub '${ESResourceNamePrefix}-'
+  #     Targets:
+  #       - !If
+  #         - OSRedhat
+  #         - Id: !GetAtt ESInstanceStack1.Outputs.ESInstanceID
+  #           Port: 5555
+  #         - !Ref 'AWS::NoValue'
+  #       - !If
+  #         - Start2RedhatInstances
+  #         - Id: !GetAtt ESInstanceStack2.Outputs.ESInstanceID
+  #           Port: 5555
+  #         - !Ref 'AWS::NoValue'
+  #       - !If
+  #         - OSWindows
+  #         - Id: !GetAtt ESInstanceWinStack1.Outputs.ESInstanceID
+  #           Port: 5555
+  #         - !Ref 'AWS::NoValue'
+  #       - !If
+  #         - Start2WindowsInstances
+  #         - Id: !GetAtt ESInstanceWinStack2.Outputs.ESInstanceID
+  #           Port: 5555
+  #         - !Ref 'AWS::NoValue'
+  #     TargetType: instance
+  #     UnhealthyThresholdCount: 3
+  #     VpcId: !Ref VPCID
+  # FSDemoApp3270AppsLoadBalancerListener:
+  #   Type: 'AWS::ElasticLoadBalancingV2::Listener'
+  #   Condition: InstallingFSDemoApp
+  #   Properties:
+  #     DefaultActions:
+  #       - Type: forward
+  #         TargetGroupArn: !Ref FSDemoApp3270AppsLoadBalancerTargetGroup
+  #     LoadBalancerArn: !Ref ESDemoAppsPublicNetworkLoadBalancer
+  #     Port: 5555
+  #     Protocol: TCP
+  # SQLDemoApp3270AppsLoadBalancerTargetGroup:
+  #   Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+  #   Condition: InstallingSQLDemoApp
+  #   Properties:
+  #     HealthCheckIntervalSeconds: 30
+  #     HealthCheckPort: "5556"
+  #     HealthCheckProtocol: TCP
+  #     HealthCheckTimeoutSeconds: 10
+  #     HealthyThresholdCount: 3
+  #     Port: 5556
+  #     Protocol: TCP
+  #     Tags:
+  #       - Key: Name
+  #         Value: !Sub
+  #           - '${StackNamePrefix}SQLDemoApp3270'
+  #           - StackNamePrefix: !If
+  #               - NamePrefixIsUndefined
+  #               - ''
+  #               - !If
+  #                 - NamePrefixIsAWSStackname
+  #                 - !Sub '${AWS::StackName}-'
+  #                 - !Sub '${ESResourceNamePrefix}-'
+  #     Targets:
+  #       - !If
+  #         - OSRedhat
+  #         - Id: !GetAtt ESInstanceStack1.Outputs.ESInstanceID
+  #           Port: 5556
+  #         - !Ref 'AWS::NoValue'
+  #       - !If
+  #         - Start2RedhatInstances
+  #         - Id: !GetAtt ESInstanceStack2.Outputs.ESInstanceID
+  #           Port: 5556
+  #         - !Ref 'AWS::NoValue'
+  #       - !If
+  #         - OSWindows
+  #         - Id: !GetAtt ESInstanceWinStack1.Outputs.ESInstanceID
+  #           Port: 5556
+  #         - !Ref 'AWS::NoValue'
+  #       - !If
+  #         - Start2WindowsInstances
+  #         - Id: !GetAtt ESInstanceWinStack2.Outputs.ESInstanceID
+  #           Port: 5556
+  #         - !Ref 'AWS::NoValue'
+  #     TargetType: instance
+  #     UnhealthyThresholdCount: 3
+  #     VpcId: !Ref VPCID
+  # SQLDemoApp3270AppsLoadBalancerListener:
+  #   Type: 'AWS::ElasticLoadBalancingV2::Listener'
+  #   Condition: InstallingSQLDemoApp
+  #   Properties:
+  #     DefaultActions:
+  #       - Type: forward
+  #         TargetGroupArn: !Ref SQLDemoApp3270AppsLoadBalancerTargetGroup
+  #     LoadBalancerArn: !Ref ESDemoAppsPublicNetworkLoadBalancer
+  #     Port: 5556
+  #     Protocol: TCP
   PACDemoApp3270AppsLoadBalancerTargetGroup:
     Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
     Condition: InstallingPACDemoApp

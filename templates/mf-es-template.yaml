@@ -66,8 +66,8 @@ Metadata:
       - Label:
           default: Enterprise Server Demo Apps Configuration
         Parameters:
-          - InstallFSDemoApp
-          - InstallSQLDemoApp
+          # - InstallFSDemoApp
+          # - InstallSQLDemoApp
           - InstallPACDemoApp
       - Label:
           default: AWS Quick Start Configuration
@@ -104,10 +104,10 @@ Metadata:
         default: Enterprise Server license filename
       ESS3BucketName:
         default: Enterprise Server S3 bucket name
-      InstallFSDemoApp:
-        default: Install Fileshare Demo App
-      InstallSQLDemoApp:
-        default: Install SQLServer Demo App
+      # InstallFSDemoApp:
+      #   default: Install Fileshare Demo App
+      # InstallSQLDemoApp:
+      #   default: Install SQLServer Demo App
       InstallPACDemoApp:
         default: Install PAC Demo App
       KeyPairName:
@@ -217,24 +217,24 @@ Parameters:
       numbers, lowercase letters, uppercase letters, and hyphens (-). It cannot
       start or end with a hyphen (-).
     Type: String
-  InstallFSDemoApp:
-    Type: String
-    AllowedValues:
-      - true
-      - false
-    Default: true
-    Description: >-
-      Choose 'false' if you don't want to install the Enterprise Server Fileshare demo
-      app. Requires selection of the 'Create-Remote-Fileshare-Server' Fileshare type.
-  InstallSQLDemoApp:
-    AllowedValues:
-      - true
-      - false
-    Default: true
-    Description: >-
-      Choose 'false' if you don't want to install the Enterprise Server SQLServer demo
-      app. Requires selection of the 'Create-RDS-Remote-Database' Database type.
-    Type: String
+  # InstallFSDemoApp:
+  #   Type: String
+  #   AllowedValues:
+  #     - true
+  #     - false
+  #   Default: true
+  #   Description: >-
+  #     Choose 'false' if you don't want to install the Enterprise Server Fileshare demo
+  #     app. Requires selection of the 'Create-Remote-Fileshare-Server' Fileshare type.
+  # InstallSQLDemoApp:
+  #   AllowedValues:
+  #     - true
+  #     - false
+  #   Default: true
+  #   Description: >-
+  #     Choose 'false' if you don't want to install the Enterprise Server SQLServer demo
+  #     app. Requires selection of the 'Create-RDS-Remote-Database' Database type.
+  #   Type: String
   InstallPACDemoApp:
     Type: String
     AllowedValues:
@@ -389,12 +389,12 @@ Conditions:
     - !Equals
       - !Ref ESLicenseFilename
       - ''
-  InstallingFSDemoApp: !Equals
-    - !Ref InstallFSDemoApp
-    - 'true'
-  InstallingSQLDemoApp: !Equals
-    - !Ref InstallSQLDemoApp
-    - 'true'
+  # InstallingFSDemoApp: !Equals
+  #   - !Ref InstallFSDemoApp
+  #   - 'true'
+  # InstallingSQLDemoApp: !Equals
+  #   - !Ref InstallSQLDemoApp
+  #   - 'true'
   InstallingPACDemoApp: !Equals
     - !Ref InstallPACDemoApp
     - 'true'
@@ -538,27 +538,27 @@ Resources:
               - InstallingPACDemoApp
               - 080-Setup-PAC-Database-Envrionment
               - 000-NoOperation
-            - !If
-              - InstallingFSDemoApp
-              - 090-InstallBankDemoFS
-              - 000-NoOperation
-            - !If
-              - InstallingSQLDemoApp
-              - 100-InstallBankDemoSQL
-              - 000-NoOperation
+            # - !If
+            #   - InstallingFSDemoApp
+            #   - 090-InstallBankDemoFS
+            #   - 000-NoOperation
+            # - !If
+            #   - InstallingSQLDemoApp
+            #   - 100-InstallBankDemoSQL
+            #   - 000-NoOperation
             - !If
               - InstallingPACDemoApp
               - 110-InstallBankDemoPAC
               - 000-NoOperation
             - 120-ChangeMFDSServiceStartName
-            - !If
-              - InstallingFSDemoApp
-              - 130-Start-BNKDMFS
-              - 000-NoOperation
-            - !If
-              - InstallingSQLDemoApp
-              - 140-Start-BNKDMSQL
-              - 000-NoOperation
+            # - !If
+            #   - InstallingFSDemoApp
+            #   - 130-Start-BNKDMFS
+            #   - 000-NoOperation
+            # - !If
+            #   - InstallingSQLDemoApp
+            #   - 140-Start-BNKDMSQL
+            #   - 000-NoOperation
             - !If
               - InstallingPACDemoApp
               - 150-Start-BNKDM
@@ -847,26 +847,26 @@ Resources:
                     -LocalPort 86
                     -Protocol tcp
               waitAfterCompletion: '0'
-            c-configure-windows-firewall-fs-demoapp-tn3270-portal-rule:
-              test: !Sub >-
-                if /I "${InstallFSDemoApp}"=="true" (exit 0) else (exit 1)
-              command:
-                powershell.exe
-                  -Command New-NetFirewallRule
-                    -DisplayName 'FS Demo App TN3270 Ingress'
-                    -LocalPort 5555
-                    -Protocol tcp
-              waitAfterCompletion: '0'
-            d-configure-windows-firewall-sql-demoapp-tn3270-portal-rule:
-              test: !Sub >-
-                if /I "${InstallSQLDemoApp}"=="true" (exit 0) else (exit 1)
-              command:
-                powershell.exe
-                  -Command New-NetFirewallRule
-                    -DisplayName 'SQLServer Demo App TN3270 Ingress'
-                    -LocalPort 5556
-                    -Protocol tcp
-              waitAfterCompletion: '0'
+            # c-configure-windows-firewall-fs-demoapp-tn3270-portal-rule:
+            #   test: !Sub >-
+            #     if /I "${InstallFSDemoApp}"=="true" (exit 0) else (exit 1)
+            #   command:
+            #     powershell.exe
+            #       -Command New-NetFirewallRule
+            #         -DisplayName 'FS Demo App TN3270 Ingress'
+            #         -LocalPort 5555
+            #         -Protocol tcp
+            #   waitAfterCompletion: '0'
+            # d-configure-windows-firewall-sql-demoapp-tn3270-portal-rule:
+            #   test: !Sub >-
+            #     if /I "${InstallSQLDemoApp}"=="true" (exit 0) else (exit 1)
+            #   command:
+            #     powershell.exe
+            #       -Command New-NetFirewallRule
+            #         -DisplayName 'SQLServer Demo App TN3270 Ingress'
+            #         -LocalPort 5556
+            #         -Protocol tcp
+            #   waitAfterCompletion: '0'
             e-configure-windows-firewall-pac-demoapp-tn3270-portal-rule:
               test: !Sub >-
                 if /I "${InstallPACDemoApp}"=="true" (exit 0) else (exit 1)
@@ -877,26 +877,26 @@ Resources:
                     -LocalPort 5557
                     -Protocol tcp
               waitAfterCompletion: '0'
-            f-configure-windows-firewall-fs-demoapp-esmac-portal-rule:
-              test: !Sub >-
-                if /I "${InstallFSDemoApp}"=="true" (exit 0) else (exit 1)
-              command:
-                powershell.exe
-                  -Command New-NetFirewallRule
-                    -DisplayName 'FS esmac Ingress'
-                    -LocalPort 5558
-                    -Protocol tcp
-              waitAfterCompletion: '0'
-            g-configure-windows-firewall-sql-demoapp-esmac-portal-rule:
-              test: !Sub >-
-                if /I "${InstallSQLDemoApp}"=="true" (exit 0) else (exit 1)
-              command:
-                powershell.exe
-                  -Command New-NetFirewallRule
-                    -DisplayName 'SQLServer esmac Ingress'
-                    -LocalPort 5559
-                    -Protocol tcp
-              waitAfterCompletion: '0'
+            # f-configure-windows-firewall-fs-demoapp-esmac-portal-rule:
+            #   test: !Sub >-
+            #     if /I "${InstallFSDemoApp}"=="true" (exit 0) else (exit 1)
+            #   command:
+            #     powershell.exe
+            #       -Command New-NetFirewallRule
+            #         -DisplayName 'FS esmac Ingress'
+            #         -LocalPort 5558
+            #         -Protocol tcp
+            #   waitAfterCompletion: '0'
+            # g-configure-windows-firewall-sql-demoapp-esmac-portal-rule:
+            #   test: !Sub >-
+            #     if /I "${InstallSQLDemoApp}"=="true" (exit 0) else (exit 1)
+            #   command:
+            #     powershell.exe
+            #       -Command New-NetFirewallRule
+            #         -DisplayName 'SQLServer esmac Ingress'
+            #         -LocalPort 5559
+            #         -Protocol tcp
+            #   waitAfterCompletion: '0'
             h-configure-windows-firewall-pac-demoapp-esmac-portal-rule:
               test: !Sub >-
                 if /I "${InstallPACDemoApp}"=="true" (exit 0) else (exit 1)

@@ -59,8 +59,8 @@ Metadata:
       - Label:
           default: Enterprise Server Demo Apps Configuration
         Parameters:
-          - InstallFSDemoApp
-          - InstallSQLDemoApp
+          # - InstallFSDemoApp
+          # - InstallSQLDemoApp
           - InstallPACDemoApp
       - Label:
           default: Database Configuration
@@ -99,10 +99,10 @@ Metadata:
         default: Enterprise Server license filename
       ESS3BucketName:
         default: Enterprise Server S3 bucket name
-      InstallFSDemoApp:
-        default: Install Fileshare Demo App
-      InstallSQLDemoApp:
-        default: Install SQLServer Demo App
+      # InstallFSDemoApp:
+      #   default: Install Fileshare Demo App
+      # InstallSQLDemoApp:
+      #   default: Install SQLServer Demo App
       InstallPACDemoApp:
         default: Install PAC Demo App
       KeyPairName:
@@ -208,24 +208,24 @@ Parameters:
       numbers, lowercase letters, uppercase letters, and hyphens (-). It cannot
       start or end with a hyphen (-).
     Type: String
-  InstallFSDemoApp:
-    Type: String
-    AllowedValues:
-      - true
-      - false
-    Default: true
-    Description: >-
-      Choose 'false' if you don't want to install the Enterprise Server Fileshare demo
-      app. Requires selection of the 'Create-Remote-Fileshare-Server' Fileshare type.
-  InstallSQLDemoApp:
-    AllowedValues:
-      - true
-      - false
-    Default: true
-    Description: >-
-      Choose 'false' if you don't want to install the Enterprise Server SQLServer demo
-      app. Requires selection of the 'Create-RDS-Remote-Database' Database type.
-    Type: String
+  # InstallFSDemoApp:
+  #   Type: String
+  #   AllowedValues:
+  #     - true
+  #     - false
+  #   Default: true
+  #   Description: >-
+  #     Choose 'false' if you don't want to install the Enterprise Server Fileshare demo
+  #     app. Requires selection of the 'Create-Remote-Fileshare-Server' Fileshare type.
+  # InstallSQLDemoApp:
+  #   AllowedValues:
+  #     - true
+  #     - false
+  #   Default: true
+  #   Description: >-
+  #     Choose 'false' if you don't want to install the Enterprise Server SQLServer demo
+  #     app. Requires selection of the 'Create-RDS-Remote-Database' Database type.
+  #   Type: String
   InstallPACDemoApp:
     Type: String
     AllowedValues:
@@ -360,12 +360,12 @@ Conditions:
     - !Equals
       - !Ref ESLicenseFilename
       - ''
-  InstallingFSDemoApp: !Equals
-    - !Ref InstallFSDemoApp
-    - 'true'
-  InstallingSQLDemoApp: !Equals
-    - !Ref InstallSQLDemoApp
-    - 'true'
+  # InstallingFSDemoApp: !Equals
+  #   - !Ref InstallFSDemoApp
+  #   - 'true'
+  # InstallingSQLDemoApp: !Equals
+  #   - !Ref InstallSQLDemoApp
+  #   - 'true'
   InstallingPACDemoApp: !Equals
     - !Ref InstallPACDemoApp
     - 'true'
@@ -494,34 +494,34 @@ Resources:
               - HaveESlicenseFilename
               - 020-ApplyESLicenseFile
               - 000-NoOperation
-            - !If
-              - InstallingSQLDemoApp
-              - 030-ConfigureODBC
-              - 000-NoOperation
+            # - !If
+            #   - InstallingSQLDemoApp
+            #   - 030-ConfigureODBC
+            #   - 000-NoOperation
             - !If
               - InstallingPACDemoApp
               - 040-Setup-PAC-Database-Envrionment
               - 000-NoOperation
-            - !If
-              - InstallingFSDemoApp
-              - 050-InstallBankDemoFS
-              - 000-NoOperation
-            - !If
-              - InstallingSQLDemoApp
-              - 070-InstallBankDemoSQL
-              - 000-NoOperation
+            # - !If
+            #   - InstallingFSDemoApp
+            #   - 050-InstallBankDemoFS
+            #   - 000-NoOperation
+            # - !If
+            #   - InstallingSQLDemoApp
+            #   - 070-InstallBankDemoSQL
+            #   - 000-NoOperation
             - !If
               - InstallingPACDemoApp
               - 060-InstallBankDemoPAC
               - 000-NoOperation
-            - !If
-              - InstallingFSDemoApp
-              - 080-StartBNKDMFS
-              - 000-NoOperation
-            - !If
-              - InstallingSQLDemoApp
-              - 090-StartBNKDMSQL
-              - 000-NoOperation
+            # - !If
+            #   - InstallingFSDemoApp
+            #   - 080-StartBNKDMFS
+            #   - 000-NoOperation
+            # - !If
+            #   - InstallingSQLDemoApp
+            #   - 090-StartBNKDMSQL
+            #   - 000-NoOperation
             - !If
               - InstallingPACDemoApp
               - 100-StartBNKDM

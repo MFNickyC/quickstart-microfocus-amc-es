@@ -165,7 +165,8 @@ Resources:
     Type: AWS::RDS::DBCluster
     Properties:
       Engine: aurora-postgresql
-      EngineVersion: "10.7"
+      # EngineVersion: "10.7" unsupported? https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/AuroraPostgreSQL.Updates.20180305.html
+      EngineVersion: "10.14"
       MasterUsername: !Ref DBMasterUsername
       MasterUserPassword: !Ref DBMasterUserPassword
       DBSubnetGroupName: !Ref DatabaseSubnetGroup
