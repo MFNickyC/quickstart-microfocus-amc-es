@@ -200,14 +200,14 @@ Parameters:
   #   Description: Choose 'false' if you don't want to install the Enterprise Server
   #     Fileshare demo app. Requires selection of the 'Create-Remote-Fileshare-Server'
   #     Fileshare type.
-  InstallPACDemoApp:
-    AllowedValues:
-    - true
-    - false
-    Default: true
-    Description: Choose 'false' if you don't want to install the Enterprise Server
-      PAC demo app.
-    Type: String
+  # InstallPACDemoApp:
+  #   AllowedValues:
+  #   - true
+  #   - false
+  #   Default: true
+  #   Description: Choose 'false' if you don't want to install the Enterprise Server
+  #     PAC demo app.
+  #   Type: String
   # InstallSQLDemoApp:
   #   AllowedValues:
   #   - true
@@ -310,21 +310,21 @@ Conditions:
     !Equals
     - !Ref AWS::Region
     - us-gov-west-1
-  InstallingAtLeastOneDemoApp: #!Or
-    # - !Condition InstallingFSDemoApp
-    # - !Condition InstallingSQLDemoApp
-    # - !Condition InstallingPACDemoApp
-    !Equals
-    - !Ref InstallPACDemoApp
-    - 'true'
+  # InstallingAtLeastOneDemoApp: #!Or
+  #   # - !Condition InstallingFSDemoApp
+  #   # - !Condition InstallingSQLDemoApp
+  #   # - !Condition InstallingPACDemoApp
+  #   !Equals
+  #   - !Ref InstallPACDemoApp
+  #   - 'true'
   # InstallingFSDemoApp:
   #   !Equals
   #   - !Ref InstallFSDemoApp
   #   - 'true'
-  InstallingPACDemoApp:
-    !Equals
-    - !Ref InstallPACDemoApp
-    - 'true'
+  # InstallingPACDemoApp:
+  #   !Equals
+  #   - !Ref InstallPACDemoApp
+  #   - 'true'
   # InstallingSQLDemoApp:
   #   !Equals
   #   - !Ref InstallSQLDemoApp
@@ -415,18 +415,18 @@ Resources:
           #   - HaveDatabaseEnvironment
           #   - 030-Setup-Database-Client-Environment
           #   - 000-NoOperation
-          - !If
-            - InstallingPACDemoApp
-            - 040-Setup-PAC-Database-Environment
-            - 000-NoOperation
+          # - !If
+          #   - InstallingPACDemoApp
+          - 040-Setup-PAC-Database-Environment
+            # - 000-NoOperation
           - !If
             - CreateMFDSServiceAccount
             - 050-CreateMFDSServiceAccount
             - 000-NoOperation
-          - !If
-            - InstallingAtLeastOneDemoApp
-            - 060-CreateBankDemoDomainUser
-            - 000-NoOperation
+          # - !If
+          #   - InstallingAtLeastOneDemoApp
+          - 060-CreateBankDemoDomainUser
+          #   - 000-NoOperation
           # - !If
           #   - InstallingFSDemoApp
           #   - 070-InstallBankDemoFS

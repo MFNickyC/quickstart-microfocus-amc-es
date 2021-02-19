@@ -74,7 +74,7 @@ Metadata:
       - Label:
           default: PAC Configuration
         Parameters:
-          - InstallPACDemoApp
+          # - InstallPACDemoApp
           - PACDBInstanceClass
           - PACDBMasterUsername
           - PACDBMasterUserPassword
@@ -186,8 +186,8 @@ Metadata:
       #   default: Install Fileshare Demo App
       # InstallSQLDemoApp:
       #   default: Install SQLServer Demo App
-      InstallPACDemoApp:
-        default: Install PAC Demo App
+      # InstallPACDemoApp:
+      #   default: Install PAC Demo App
       KeyPairName:
         default: Key pair name
       LicenseAgreement:
@@ -564,15 +564,15 @@ Parameters:
   #   MinLength: '8'
   #   NoEcho: true
   #   Type: String
-  InstallPACDemoApp:
-    Type: String
-    AllowedValues:
-      - true
-      - false
-    Default: true
-    Description: >-
-      Choose 'false' if you don't want to install the Enterprise Server PAC demo
-      app.
+  # InstallPACDemoApp:
+  #   Type: String
+  #   AllowedValues:
+  #     - true
+  #     - false
+  #   Default: true
+  #   Description: >-
+  #     Choose 'false' if you don't want to install the Enterprise Server PAC demo
+  #     app.
   # InstallFSDemoApp:
   #   Type: String
   #   AllowedValues:
@@ -869,16 +869,16 @@ Conditions:
     - !Equals
       - !Ref OperatorEmail
       - None
-  InstallingAtLeastOneDemoApp: #!Or
-    # - !Condition InstallingFSDemoApp
-    # - !Condition InstallingSQLDemoApp
-    # - !Condition InstallingPACDemoApp
-    !Equals
-    - !Ref InstallPACDemoApp
-    - 'true'
-  InstallingPACDemoApp: !Equals
-    - !Ref InstallPACDemoApp
-    - 'true'
+  # InstallingAtLeastOneDemoApp: #!Or
+  #   # - !Condition InstallingFSDemoApp
+  #   # - !Condition InstallingSQLDemoApp
+  #   # - !Condition InstallingPACDemoApp
+  #   !Equals
+  #   - !Ref InstallPACDemoApp
+  #   - 'true'
+  # InstallingPACDemoApp: !Equals
+  #   - !Ref InstallPACDemoApp
+  #   - 'true'
   # InstallingFSDemoApp: !Equals
   #   - !Ref InstallFSDemoApp
   #   - 'true'
@@ -891,12 +891,15 @@ Conditions:
   NamePrefixIsUndefined: !Equals
     - !Ref ESResourceNamePrefix
     - ''
-  2InstancesSelected: !Equals
+  # 2InstancesSelected: !Equals
+  #   - !Ref NumberOfESInstance
+  #   - 2
+  # Start2Instances: !Or
+  #   - !Condition 2InstancesSelected
+  #   - !Condition InstallingPACDemoApp
+  Start2Instances: !Equals
     - !Ref NumberOfESInstance
     - 2
-  Start2Instances: !Or
-    - !Condition 2InstancesSelected
-    - !Condition InstallingPACDemoApp
   OSRedhat: !Equals
     - !Ref OS
     - 'Red Hat Enterprise Linux'
@@ -1040,7 +1043,7 @@ Resources:
   #       VPCID: !Ref VPCID
   AuroraServerStack:
     Type: 'AWS::CloudFormation::Stack'
-    Condition: InstallingPACDemoApp
+    # Condition: InstallingPACDemoApp
     Properties:
       TemplateURL: !Sub
         - 'https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}templates/mf-db-aurora-template.yaml'
@@ -1129,8 +1132,8 @@ Resources:
   #   Condition: CreateRDSRemoteDatabaseStack
   #   DependsOn: RemoteDatabaseServerStack
   #   Type: 'AWS::CloudFormation::WaitConditionHandle'
-  NoRDSRemoteDatabaseStackCreateWaitHandle:
-    Type: 'AWS::CloudFormation::WaitConditionHandle'
+  # NoRDSRemoteDatabaseStackCreateWaitHandle:
+  #   Type: 'AWS::CloudFormation::WaitConditionHandle'
   # RDSRemoteDatabaseStackCreateWaitCondition:
   #   Type: 'AWS::CloudFormation::WaitCondition'
   #   Properties:
@@ -1146,8 +1149,8 @@ Resources:
   #     - RemoteFileshareWinServerStack
   #     - RDSRemoteDatabaseStackCreateWaitCondition
   #   Type: 'AWS::CloudFormation::WaitConditionHandle'
-  NoFSServerWaitHandle:
-    Type: 'AWS::CloudFormation::WaitConditionHandle'
+  # NoFSServerWaitHandle:
+  #   Type: 'AWS::CloudFormation::WaitConditionHandle'
   # FSServerWinWaitCondition:
   #   Type: 'AWS::CloudFormation::WaitCondition'
   #   Properties:
@@ -1205,14 +1208,14 @@ Resources:
             ToPort: 22
             SourceSecurityGroupId: !Ref BastionAccessSGID
           - !Ref 'AWS::NoValue'
-        - !If
-          - InstallingAtLeastOneDemoApp
-          - Description: Allow ICMP Destination Unreachable to aid MTU Path Discovery
-            IpProtocol: icmp
-            FromPort: 3
-            ToPort: 4
-            CidrIp: !Ref DemoAppsIngressCIDR
-          - !Ref 'AWS::NoValue'
+        # - !If
+        #   - InstallingAtLeastOneDemoApp
+        - Description: Allow ICMP Destination Unreachable to aid MTU Path Discovery
+          IpProtocol: icmp
+          FromPort: 3
+          ToPort: 4
+          CidrIp: !Ref DemoAppsIngressCIDR
+        # - !Ref 'AWS::NoValue'
         # - !If
         #   - InstallingFSDemoApp
         #   - Description: Fileshare Bank Demo Application TN3270 Listener Ingress
@@ -1229,16 +1232,16 @@ Resources:
         #     ToPort: 5556
         #     CidrIp: !Ref DemoAppsIngressCIDR
         #   - !Ref 'AWS::NoValue'
-        - !If
-          - InstallingPACDemoApp
-          - Description: PAC Bank Demo Application TN3270 Listener Ingress
-            IpProtocol: tcp
-            FromPort: 5557
-            ToPort: 5557
-            CidrIp: !Ref DemoAppsIngressCIDR
-          - !Ref 'AWS::NoValue'
+        # - !If
+        #   - InstallingPACDemoApp
+        - Description: PAC Bank Demo Application TN3270 Listener Ingress
+          IpProtocol: tcp
+          FromPort: 5557
+          ToPort: 5557
+          CidrIp: !Ref DemoAppsIngressCIDR
+          # - !Ref 'AWS::NoValue'
   ElasticacheSecurityGroup:
-    Condition: InstallingPACDemoApp
+    # Condition: InstallingPACDemoApp
     Type: AWS::EC2::SecurityGroup
     Properties:
       VpcId: !Ref VPCID
@@ -1250,13 +1253,13 @@ Resources:
           ToPort: 6379
           SourceSecurityGroupId: !Ref ESInstance1ClientAccessSecurityGroup
   ElasticacheSubnetGroup1:
-    Condition: InstallingPACDemoApp
+    # Condition: InstallingPACDemoApp
     Type: AWS::ElastiCache::SubnetGroup
     Properties:
       Description: "Elasticache Subnet Group"
       SubnetIds: [!Ref PrivateSubnet1AID]
   Elasticache1:
-    Condition: InstallingPACDemoApp
+    # Condition: InstallingPACDemoApp
     Type: AWS::ElastiCache::CacheCluster
     Properties:
       AutoMinorVersionUpgrade: true
@@ -1294,17 +1297,17 @@ Resources:
         #   - CreateRDSRemoteDatabaseStack
         #   - !GetAtt RemoteDatabaseServerStack.Outputs.ESDatabaseEndpointAddress
         #   - !Ref 'AWS::NoValue'
-        ESPACDatabaseEndpointAddress: !If
-          - InstallingPACDemoApp
-          - !GetAtt AuroraServerStack.Outputs.ESPACDatabaseEndpointAddress
-          - !Ref 'AWS::NoValue'
+        ESPACDatabaseEndpointAddress: !GetAtt AuroraServerStack.Outputs.ESPACDatabaseEndpointAddress # !If
+          # - InstallingPACDemoApp
+          # - !GetAtt AuroraServerStack.Outputs.ESPACDatabaseEndpointAddress
+          # - !Ref 'AWS::NoValue'
         ESS3BucketName: !Ref ESS3BucketName
         # FileshareDataFolderUNC: !If
         #   - CreateWinRemoteFileshareStack
         #   - !GetAtt RemoteFileshareWinServerStack.Outputs.FileshareDataFolderUNC
         #   - !Ref 'AWS::NoValue'
         # InstallFSDemoApp: !Ref InstallFSDemoApp
-        InstallPACDemoApp: !Ref InstallPACDemoApp
+        # InstallPACDemoApp: !Ref InstallPACDemoApp
         # InstallSQLDemoApp: !Ref InstallSQLDemoApp
         KeyPairName: !Ref KeyPairName
         MFDSServiceAccountName: !Ref MFDSServiceAccountName
@@ -1312,10 +1315,10 @@ Resources:
         QSS3BucketName: !Ref QSS3BucketName
         QSS3BucketRegion: !Ref QSS3BucketRegion
         QSS3KeyPrefix: !Ref QSS3KeyPrefix
-        RedisEndPoint: !If
-          - InstallingPACDemoApp
-          - !GetAtt Elasticache1.RedisEndpoint.Address
-          - !Ref 'AWS::NoValue'
+        RedisEndPoint: !GetAtt Elasticache1.RedisEndpoint.Address # !If
+          # - InstallingPACDemoApp
+          # - !GetAtt Elasticache1.RedisEndpoint.Address
+          # - !Ref 'AWS::NoValue'
         SubnetID: !Ref PrivateSubnet1AID
   ESCWAStack:
     Type: 'AWS::CloudFormation::Stack'
@@ -1381,7 +1384,7 @@ Resources:
         ESLicenseFilename: !Ref ESLicenseFilename
         ESS3BucketName: !Ref ESS3BucketName
         # InstallFSDemoApp: !Ref InstallFSDemoApp
-        InstallPACDemoApp: !Ref InstallPACDemoApp
+        # InstallPACDemoApp: !Ref InstallPACDemoApp
         # InstallSQLDemoApp: !Ref InstallSQLDemoApp
         AdditionalESStorageinGiB: !Ref AdditionalESStorageinGiB
         KeyPairName: !Ref KeyPairName
@@ -1422,7 +1425,7 @@ Resources:
         ESLicenseFilename: !Ref ESLicenseFilename
         ESS3BucketName: !Ref ESS3BucketName
         # InstallFSDemoApp: !Ref InstallFSDemoApp
-        InstallPACDemoApp: !Ref InstallPACDemoApp
+        # InstallPACDemoApp: !Ref InstallPACDemoApp
         # InstallSQLDemoApp: !Ref InstallSQLDemoApp
         AdditionalESStorageinGiB: !Ref AdditionalESStorageinGiB
         KeyPairName: !Ref KeyPairName
@@ -1467,7 +1470,7 @@ Resources:
         ESLicenseFilename: !Ref ESLicenseFilename
         ESS3BucketName: !Ref ESS3BucketName
         # InstallFSDemoApp: !Ref InstallFSDemoApp
-        InstallPACDemoApp: !Ref InstallPACDemoApp
+        # InstallPACDemoApp: !Ref InstallPACDemoApp
         # InstallSQLDemoApp: !Ref InstallSQLDemoApp
         AdditionalESStorageinGiB: !Ref AdditionalESStorageinGiB
         KeyPairName: !Ref KeyPairName
@@ -1514,7 +1517,7 @@ Resources:
         ESLicenseFilename: !Ref ESLicenseFilename
         ESS3BucketName: !Ref ESS3BucketName
         # InstallFSDemoApp: !Ref InstallFSDemoApp
-        InstallPACDemoApp: !Ref InstallPACDemoApp
+        # InstallPACDemoApp: !Ref InstallPACDemoApp
         # InstallSQLDemoApp: !Ref InstallSQLDemoApp
         AdditionalESStorageinGiB: !Ref AdditionalESStorageinGiB
         KeyPairName: !Ref KeyPairName
@@ -1529,7 +1532,7 @@ Resources:
         SubnetID: !Ref PrivateSubnet1AID
   ESDemoAppsPublicNetworkLoadBalancer:
     Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
-    Condition: InstallingAtLeastOneDemoApp
+    # Condition: InstallingAtLeastOneDemoApp
     Properties:
       IpAddressType: ipv4
       LoadBalancerAttributes:
@@ -1665,7 +1668,7 @@ Resources:
   #     Protocol: TCP
   PACDemoApp3270AppsLoadBalancerTargetGroup:
     Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
-    Condition: InstallingPACDemoApp
+    # Condition: InstallingPACDemoApp
     Properties:
       HealthCheckIntervalSeconds: 30
       HealthCheckPort: "5557"
@@ -1711,7 +1714,7 @@ Resources:
       VpcId: !Ref VPCID
   PACDemoApp3270AppsLoadBalancerListener:
     Type: 'AWS::ElasticLoadBalancingV2::Listener'
-    Condition: InstallingPACDemoApp
+    # Condition: InstallingPACDemoApp
     Properties:
       DefaultActions:
         - Type: forward
@@ -1721,6 +1724,6 @@ Resources:
       Protocol: TCP
 Outputs:
   ESDemoAppsPublicNetworkLoadBalancer:
-    Condition: InstallingAtLeastOneDemoApp
+    # Condition: InstallingAtLeastOneDemoApp
     Description: The DNS name for the load balancer.
     Value: !GetAtt ESDemoAppsPublicNetworkLoadBalancer.DNSName

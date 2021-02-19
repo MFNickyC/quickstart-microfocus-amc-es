@@ -76,7 +76,7 @@ Metadata:
       - Label:
           default: PAC Configuration
         Parameters:
-          - InstallPACDemoApp
+          # - InstallPACDemoApp
           - PACDBInstanceClass
           - PACDBMasterUsername
           - PACDBMasterUserPassword
@@ -183,8 +183,8 @@ Metadata:
       #   default: FSVIEW user password
       # FSVIEWUserPasswordConfirm:
       #   default: Re-enter the FSVIEW user password
-      InstallPACDemoApp:
-        default: Install PAC Demo App
+      # InstallPACDemoApp:
+      #   default: Install PAC Demo App
       # InstallFSDemoApp:
       #   default: Install Fileshare Demo App
       # InstallSQLDemoApp:
@@ -598,15 +598,15 @@ Parameters:
   #   MinLength: '8'
   #   NoEcho: true
   #   Type: String
-  InstallPACDemoApp:
-    Type: String
-    AllowedValues:
-      - true
-      - false
-    Default: true
-    Description: >-
-      Choose 'false' if you don't want to install the Enterprise Server PAC demo
-      app.
+  # InstallPACDemoApp:
+  #   Type: String
+  #   AllowedValues:
+  #     - true
+  #     - false
+  #   Default: true
+  #   Description: >-
+  #     Choose 'false' if you don't want to install the Enterprise Server PAC demo
+  #     app.
   # InstallFSDemoApp:
   #   Type: String
   #   AllowedValues:
@@ -974,13 +974,13 @@ Conditions:
     - !Equals
       - !Ref NumberOfRDGWHosts
       - None
-  InstallingAtLeastOneDemoApp: #!Or
-    # - !Condition InstallingFSDemoApp
-    # - !Condition InstallingSQLDemoApp
-    # - !Condition InstallingPACDemoApp
-    !Equals
-    - !Ref InstallPACDemoApp
-    - 'true'
+  # InstallingAtLeastOneDemoApp: #!Or
+  #   # - !Condition InstallingFSDemoApp
+  #   # - !Condition InstallingSQLDemoApp
+  #   # - !Condition InstallingPACDemoApp
+  #   !Equals
+  #   - !Ref InstallPACDemoApp
+  #   - 'true'
   # InstallingPACDemoApp: !Equals
   #   - !Ref InstallPACDemoApp
   #   - 'true'
@@ -1284,7 +1284,7 @@ Resources:
         # FSVIEWUserPasswordConfirm: !Ref FSVIEWUserPasswordConfirm
         # InstallFSDemoApp: !Ref InstallFSDemoApp
         # InstallSQLDemoApp: !Ref InstallSQLDemoApp
-        InstallPACDemoApp: !Ref InstallPACDemoApp
+        # InstallPACDemoApp: !Ref InstallPACDemoApp
         KeyPairName: !Ref KeyPairName
         LicenseAgreement: !Ref LicenseAgreement
         MFDSServiceAccountName: !Ref MFDSServiceAccountName
@@ -1317,7 +1317,7 @@ Outputs:
     Description: Microsoft directory service ID
     Value: !Ref DSMicrosoftAD
   ESDemoAppsPublicNetworkLoadBalancer:
-    Condition: InstallingAtLeastOneDemoApp
+    # Condition: InstallingAtLeastOneDemoApp
     Description: The DNS name of the Enterprise Server public load balancer
     Value: !GetAtt EnterpriseServerWorkloadStack.Outputs.ESDemoAppsPublicNetworkLoadBalancer
   RemoteDesktopGatewayIP:
