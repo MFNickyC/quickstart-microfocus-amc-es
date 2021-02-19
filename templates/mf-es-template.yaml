@@ -536,7 +536,7 @@ Resources:
             #   - 000-NoOperation
             # - !If
             #   - InstallingPACDemoApp
-            - 080-Setup-PAC-Database-Envrionment
+            - 070-Setup-PAC-Database-Envrionment
               # - 000-NoOperation
             # - !If
             #   - InstallingFSDemoApp
@@ -548,9 +548,9 @@ Resources:
             #   - 000-NoOperation
             # - !If
             #   - InstallingPACDemoApp
-            - 110-InstallBankDemoPAC
+            - 080-InstallBankDemoPAC
               # - 000-NoOperation
-            - 120-ChangeMFDSServiceStartName
+            - 090-ChangeMFDSServiceStartName
             # - !If
             #   - InstallingFSDemoApp
             #   - 130-Start-BNKDMFS
@@ -561,9 +561,9 @@ Resources:
             #   - 000-NoOperation
             # - !If
             #   - InstallingPACDemoApp
-            - 150-Start-BNKDM
+            - 100-Start-BNKDM
               # - 000-NoOperation
-            - 160-Finalize
+            - 110-Finalize
         000-NoOperation:
           commands:
             a-no-operation:
@@ -867,7 +867,7 @@ Resources:
             #         -LocalPort 5556
             #         -Protocol tcp
             #   waitAfterCompletion: '0'
-            e-configure-windows-firewall-pac-demoapp-tn3270-portal-rule:
+            c-configure-windows-firewall-pac-demoapp-tn3270-portal-rule:
               # test: !Sub >-
               #   if /I "${InstallPACDemoApp}"=="true" (exit 0) else (exit 1)
               command:
@@ -897,7 +897,7 @@ Resources:
             #         -LocalPort 5559
             #         -Protocol tcp
             #   waitAfterCompletion: '0'
-            h-configure-windows-firewall-pac-demoapp-esmac-portal-rule:
+            d-configure-windows-firewall-pac-demoapp-esmac-portal-rule:
               # test: !Sub >-
               #   if /I "${InstallPACDemoApp}"=="true" (exit 0) else (exit 1)
               command:
@@ -907,7 +907,7 @@ Resources:
                     -LocalPort 5560
                     -Protocol tcp
               waitAfterCompletion: '0'
-            i-configure-windows-firewall-es-admin-portal-rule:
+            e-configure-windows-firewall-es-admin-portal-rule:
               command:
                 powershell.exe
                   -Command New-NetFirewallRule
@@ -915,7 +915,7 @@ Resources:
                     -LocalPort 86
                     -Protocol udp
               waitAfterCompletion: '0'
-            j-configure-windows-firewall-es-escwa-portal-rule:
+            f-configure-windows-firewall-es-escwa-portal-rule:
               command:
                 powershell.exe
                   -Command New-NetFirewallRule
@@ -989,48 +989,48 @@ Resources:
                         }
                       }"
               waitAfterCompletion: '0'
-        070-Setup-Database-Client-Environment:
-          files:
-            # Download Microsoft® ODBC Driver 13.1 for SQL Server® - Windows, Linux, & macOS
-            # https://www.microsoft.com/en-us/download/details.aspx?id=53339
-            'c:\cfn\assets\msodbcsql.msi':
-              source:
-                https://download.microsoft.com/download/D/5/E/D5EEF288-A277-45C8-855B-8E2CB7E25B96/x64/msodbcsql.msi
+        # 070-Setup-Database-Client-Environment:
+        #   files:
+        #     # Download Microsoft® ODBC Driver 13.1 for SQL Server® - Windows, Linux, & macOS
+        #     # https://www.microsoft.com/en-us/download/details.aspx?id=53339
+        #     'c:\cfn\assets\msodbcsql.msi':
+        #       source:
+        #         https://download.microsoft.com/download/D/5/E/D5EEF288-A277-45C8-855B-8E2CB7E25B96/x64/msodbcsql.msi
 
-            # Download Microsoft® Command Line Utilities 14.0.1000 for SQL Server®
-            # https://www.microsoft.com/en-us/download/details.aspx?id=53591
-            'c:\cfn\assets\MsSqlCmdLnUtils.msi':
-              source:
-                https://download.microsoft.com/download/C/8/8/C88C2E51-8D23-4301-9F4B-64C8E2F163C5/x64/MsSqlCmdLnUtils.msi
-          commands:
-            a-install-mssqlserver-odbcdriver:
-              command:
-                start /wait
-                  msiexec
-                    /quiet
-                    /passive
-                    /qn
-                    /i c:\cfn\assets\msodbcsql.msi
-                      IACCEPTMSODBCSQLLICENSETERMS=YES
-                      ADDLOCAL=ALL
-              waitAfterCompletion: '0'
-            b-install-MsSql-CmdLn-Utils:
-              command:
-                start /wait
-                  msiexec
-                    /quiet
-                    /passive
-                    /qn
-                    /i c:\cfn\assets\MsSqlCmdLnUtils.msi
-                      IACCEPTMSSQLCMDLNUTILSLICENSETERMS=YES
-              waitAfterCompletion: '0'
-            c-add-mssql-cmdln-utils-to-system-path:
-              command:
-                powershell.exe
-                  -File c:\cfn\scripts\AddTo-SystemPath.ps1
-                    -PathToAdd "c:\Program Files\Microsoft SQL Server\Client SDK\ODBC\130\Tools\Binn"
-              waitAfterCompletion: '0'
-        080-Setup-PAC-Database-Envrionment:
+        #     # Download Microsoft® Command Line Utilities 14.0.1000 for SQL Server®
+        #     # https://www.microsoft.com/en-us/download/details.aspx?id=53591
+        #     'c:\cfn\assets\MsSqlCmdLnUtils.msi':
+        #       source:
+        #         https://download.microsoft.com/download/C/8/8/C88C2E51-8D23-4301-9F4B-64C8E2F163C5/x64/MsSqlCmdLnUtils.msi
+        #   commands:
+        #     a-install-mssqlserver-odbcdriver:
+        #       command:
+        #         start /wait
+        #           msiexec
+        #             /quiet
+        #             /passive
+        #             /qn
+        #             /i c:\cfn\assets\msodbcsql.msi
+        #               IACCEPTMSODBCSQLLICENSETERMS=YES
+        #               ADDLOCAL=ALL
+        #       waitAfterCompletion: '0'
+        #     b-install-MsSql-CmdLn-Utils:
+        #       command:
+        #         start /wait
+        #           msiexec
+        #             /quiet
+        #             /passive
+        #             /qn
+        #             /i c:\cfn\assets\MsSqlCmdLnUtils.msi
+        #               IACCEPTMSSQLCMDLNUTILSLICENSETERMS=YES
+        #       waitAfterCompletion: '0'
+        #     c-add-mssql-cmdln-utils-to-system-path:
+        #       command:
+        #         powershell.exe
+        #           -File c:\cfn\scripts\AddTo-SystemPath.ps1
+        #             -PathToAdd "c:\Program Files\Microsoft SQL Server\Client SDK\ODBC\130\Tools\Binn"
+        #       waitAfterCompletion: '0'
+        070-Setup-PAC-Database-Envrionment:
           files:
             'c:\cfn\assets\psqlodbc1_11_x86.zip':
               source:
@@ -1071,48 +1071,48 @@ Resources:
                     /qn
                     /i c:\cfn\assets\psqlodbc_11_x64\psqlodbc_x64.msi
               waitAfterCompletion: '0'
-        090-InstallBankDemoFS:
-          commands:
-            a-import-region:
-              cwd: C:\Program Files (x86)\Micro Focus\Enterprise Server\bin
-              command:
-                start /wait
-                  mfds
-                    /g 5
-                    C:\BankDemo_FS\Repo\BNKDMFS.xml
-                    D
-              waitAfterCompletion: '0'
-        100-InstallBankDemoSQL:
-          files:
-            'c:\cfn\scripts\CreateDSN.ps1':
-              content: |
-                try{
-                  # Create ODBC DNS to the BankDemo database
-                  Add-OdbcDsn `
-                      -Name DBNASEDB `
-                      -DriverName "ODBC Driver 13 for SQL Server" `
-                      -DsnType "System" `
-                      -Platform "32-bit" `
-                      -SetPropertyValue @("Server=ESDatabase", "Trusted_Connection=Yes", "Database=BANKDEMO")
-                } catch {
-                  $_ | Write-AWSQuickStartException
-                }
-          commands:
-            a-CreateDSN:
-              command:
-                powershell.exe
-                  -File c:\cfn\scripts\CreateDSN.ps1
-              waitAfterCompletion: '0'
-            b-import-region:
-              cwd: C:\Program Files (x86)\Micro Focus\Enterprise Server\bin
-              command:
-                start /wait
-                  mfds
-                    /g 5
-                    C:\BankDemo_SQL\BNKDMSQLRegionDefForImport\BNKDMSQL.xml
-                    D
-              waitAfterCompletion: '0'
-        110-InstallBankDemoPAC:
+        # 090-InstallBankDemoFS:
+        #   commands:
+        #     a-import-region:
+        #       cwd: C:\Program Files (x86)\Micro Focus\Enterprise Server\bin
+        #       command:
+        #         start /wait
+        #           mfds
+        #             /g 5
+        #             C:\BankDemo_FS\Repo\BNKDMFS.xml
+        #             D
+        #       waitAfterCompletion: '0'
+        # 100-InstallBankDemoSQL:
+        #   files:
+        #     'c:\cfn\scripts\CreateDSN.ps1':
+        #       content: |
+        #         try{
+        #           # Create ODBC DNS to the BankDemo database
+        #           Add-OdbcDsn `
+        #               -Name DBNASEDB `
+        #               -DriverName "ODBC Driver 13 for SQL Server" `
+        #               -DsnType "System" `
+        #               -Platform "32-bit" `
+        #               -SetPropertyValue @("Server=ESDatabase", "Trusted_Connection=Yes", "Database=BANKDEMO")
+        #         } catch {
+        #           $_ | Write-AWSQuickStartException
+        #         }
+        #   commands:
+        #     a-CreateDSN:
+        #       command:
+        #         powershell.exe
+        #           -File c:\cfn\scripts\CreateDSN.ps1
+        #       waitAfterCompletion: '0'
+        #     b-import-region:
+        #       cwd: C:\Program Files (x86)\Micro Focus\Enterprise Server\bin
+        #       command:
+        #         start /wait
+        #           mfds
+        #             /g 5
+        #             C:\BankDemo_SQL\BNKDMSQLRegionDefForImport\BNKDMSQL.xml
+        #             D
+        #       waitAfterCompletion: '0'
+        080-InstallBankDemoPAC:
           files:
             'C:\cfn\scripts\deploy.bat':
               source: !Sub
@@ -1201,7 +1201,7 @@ Resources:
                   -File c:\cfn\scripts\Add-region-to-PAC.ps1
                   -ESInstanceName ${ESInstanceName}
               waitAfterCompletion: '0'
-        120-ChangeMFDSServiceStartName:
+        090-ChangeMFDSServiceStartName:
           files:
             'c:\cfn\scripts\Configure-UserLogonPrivileges.ps1':
               source: !Sub
@@ -1270,29 +1270,29 @@ Resources:
                     -PrivilegeName "SeRemoteInteractiveLogonRight"
                     -Status Grant
               waitAfterCompletion: '0'
-        130-Start-BNKDMFS:
-          commands:
-            a-start-BNKDMFS-region:
-              command: !Sub
-                powershell.exe
-                  -File c:\cfn\scripts\Schedule-AD-PowershellTask.ps1
-                    -TaskName startBNKDMFS
-                    -TaskArguments "-File c:\cfn\scripts\StartESRegion.ps1 -RegionName BNKDMFS"
-                    -DomainUserName "${DomainNetBIOSName}\${MFDSServiceAccountName}"
-                    -DomainUserPassword "${MFDSServiceAccountPassword}"
-              waitAfterCompletion: '0'
-        140-Start-BNKDMSQL:
-          commands:
-            a-start-BNKDMSQL-region:
-              command: !Sub
-                powershell.exe
-                  -File c:\cfn\scripts\Schedule-AD-PowershellTask.ps1
-                    -TaskName startBNKDMSQL
-                    -TaskArguments "-File c:\cfn\scripts\StartESRegion.ps1 -RegionName BNKDMSQL"
-                    -DomainUserName "${DomainNetBIOSName}\${MFDSServiceAccountName}"
-                    -DomainUserPassword "${MFDSServiceAccountPassword}"
-              waitAfterCompletion: '0'
-        150-Start-BNKDM:
+        # 130-Start-BNKDMFS:
+        #   commands:
+        #     a-start-BNKDMFS-region:
+        #       command: !Sub
+        #         powershell.exe
+        #           -File c:\cfn\scripts\Schedule-AD-PowershellTask.ps1
+        #             -TaskName startBNKDMFS
+        #             -TaskArguments "-File c:\cfn\scripts\StartESRegion.ps1 -RegionName BNKDMFS"
+        #             -DomainUserName "${DomainNetBIOSName}\${MFDSServiceAccountName}"
+        #             -DomainUserPassword "${MFDSServiceAccountPassword}"
+        #       waitAfterCompletion: '0'
+        # 140-Start-BNKDMSQL:
+        #   commands:
+        #     a-start-BNKDMSQL-region:
+        #       command: !Sub
+        #         powershell.exe
+        #           -File c:\cfn\scripts\Schedule-AD-PowershellTask.ps1
+        #             -TaskName startBNKDMSQL
+        #             -TaskArguments "-File c:\cfn\scripts\StartESRegion.ps1 -RegionName BNKDMSQL"
+        #             -DomainUserName "${DomainNetBIOSName}\${MFDSServiceAccountName}"
+        #             -DomainUserPassword "${MFDSServiceAccountPassword}"
+        #       waitAfterCompletion: '0'
+        100-Start-BNKDM:
           files:
             'c:\cfn\scripts\StartESRegion-cold.ps1':
               source: !Sub
@@ -1324,7 +1324,7 @@ Resources:
                     -DomainUserName "${DomainNetBIOSName}\${MFDSServiceAccountName}"
                     -DomainUserPassword "${MFDSServiceAccountPassword}"
               waitAfterCompletion: '0'
-        160-Finalize:
+        110-Finalize:
           commands:
             a-finalize-init:
               command:

@@ -409,33 +409,33 @@ Resources:
       AWS::CloudFormation::Init:
         configSets:
           config:
-          - 010-InitPowerShell
-          - 020-RenameAndJoinDomain
-          # - !If
-          #   - HaveDatabaseEnvironment
-          #   - 030-Setup-Database-Client-Environment
-          #   - 000-NoOperation
-          # - !If
-          #   - InstallingPACDemoApp
-          - 040-Setup-PAC-Database-Environment
-            # - 000-NoOperation
-          - !If
-            - CreateMFDSServiceAccount
-            - 050-CreateMFDSServiceAccount
-            - 000-NoOperation
-          # - !If
-          #   - InstallingAtLeastOneDemoApp
-          - 060-CreateBankDemoDomainUser
-          #   - 000-NoOperation
-          # - !If
-          #   - InstallingFSDemoApp
-          #   - 070-InstallBankDemoFS
-          #   - 000-NoOperation
-          # - !If
-          #   - InstallingSQLDemoApp
-          #   - 080-InstallBankDemoSQL
-          #   - 000-NoOperation
-          - 090-Finalize
+            - 010-InitPowerShell
+            - 020-RenameAndJoinDomain
+            # - !If
+            #   - HaveDatabaseEnvironment
+            #   - 030-Setup-Database-Client-Environment
+            #   - 000-NoOperation
+            # - !If
+            #   - InstallingPACDemoApp
+            - 030-Setup-PAC-Database-Environment
+              # - 000-NoOperation
+            - !If
+              - CreateMFDSServiceAccount
+              - 040-CreateMFDSServiceAccount
+              - 000-NoOperation
+            # - !If
+            #   - InstallingAtLeastOneDemoApp
+            - 050-CreateBankDemoDomainUser
+            #   - 000-NoOperation
+            # - !If
+            #   - InstallingFSDemoApp
+            #   - 070-InstallBankDemoFS
+            #   - 000-NoOperation
+            # - !If
+            #   - InstallingSQLDemoApp
+            #   - 080-InstallBankDemoSQL
+            #   - 000-NoOperation
+            - 060-Finalize
         000-NoOperation:
           commands:
             a-no-operation:
@@ -572,7 +572,7 @@ Resources:
         #       command: powershell.exe -File c:\cfn\scripts\AddTo-SystemPath.ps1 -PathToAdd
         #         "c:\Program Files\Microsoft SQL Server\Client SDK\ODBC\130\Tools\Binn"
         #       waitAfterCompletion: '0'
-        040-Setup-PAC-Database-Environment:
+        030-Setup-PAC-Database-Environment:
           files:
             'c:\cfn\scripts\Download-postgres-tools.ps1':
               source: !Sub
@@ -624,7 +624,7 @@ Resources:
               command: !Sub 'powershell.exe -File C:\cfn\scripts\Schedule-AD-AddDNSServerResourceRecordCName.ps1
                 -CName ESRedis -HostNameAlias ${RedisEndPoint} -DomainDnsName
                 ${DomainDNSName} -DomainUserName Admin -DomainUserPassword ${DomainAdminPassword}'
-        050-CreateMFDSServiceAccount:
+        040-CreateMFDSServiceAccount:
           commands:
             a-create-mfds-service-account:
               command: !Sub 'powershell.exe -File c:\cfn\scripts\New-ADUser.ps1 -NewUsername
@@ -633,7 +633,7 @@ Resources:
                 -DomainDnsName ${DomainDNSName} -DomainUserName Admin -DomainUserPassword
                 ${DomainAdminPassword}'
               waitAfterCompletion: '0'
-        060-CreateBankDemoDomainUser:
+        050-CreateBankDemoDomainUser:
           files:
             c:\cfn\scripts\Add-user-to-admin-group.ps1:
               source:
@@ -654,23 +654,23 @@ Resources:
                 ESDemoUser -DomainDnsName ${DomainDNSName} -DomainUserName
                 Admin -DomainUserPassword ${DomainAdminPassword}'
               waitAfterCompletion: '0'
-        070-InstallBankDemoFS:
-          files:
-            c:\cfn\scripts\Create-Mapped-Drive-GPO.ps1:
-              source:
-                !Sub
-                - https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/Create-Mapped-Drive-GPO.ps1
-                - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
-                  S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
-              authentication: S3AccessCreds
-          commands:
-            a-create-fsserver-mapped-drive-gpo:
-              command: !Sub 'powershell.exe -File c:\cfn\scripts\Schedule-AD-PowershellTask.ps1
-                -TaskName Create-FSServer-Mapped-Drive-GPO -TaskArguments "-File C:\cfn\scripts\Create-Mapped-Drive-GPO.ps1
-                -PolicyName FSServer-FSDir-Share-Drive-Map -DriveLetter Z -FileshareDataFolderUNC
-                ${FileshareDataFolderUNC} -DomainDnsName ${DomainDNSName}" -DomainUserName
-                "${DomainNetBIOSName}\Admin" -DomainUserPassword "${DomainAdminPassword}"'
-              waitAfterCompletion: '0'
+        # 070-InstallBankDemoFS:
+        #   files:
+        #     c:\cfn\scripts\Create-Mapped-Drive-GPO.ps1:
+        #       source:
+        #         !Sub
+        #         - https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/Create-Mapped-Drive-GPO.ps1
+        #         - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
+        #           S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
+        #       authentication: S3AccessCreds
+        #   commands:
+        #     a-create-fsserver-mapped-drive-gpo:
+        #       command: !Sub 'powershell.exe -File c:\cfn\scripts\Schedule-AD-PowershellTask.ps1
+        #         -TaskName Create-FSServer-Mapped-Drive-GPO -TaskArguments "-File C:\cfn\scripts\Create-Mapped-Drive-GPO.ps1
+        #         -PolicyName FSServer-FSDir-Share-Drive-Map -DriveLetter Z -FileshareDataFolderUNC
+        #         ${FileshareDataFolderUNC} -DomainDnsName ${DomainDNSName}" -DomainUserName
+        #         "${DomainNetBIOSName}\Admin" -DomainUserPassword "${DomainAdminPassword}"'
+        #       waitAfterCompletion: '0'
         # 080-InstallBankDemoSQL:
         #   files:
         #     C:\BankDemo_SQL\System\BankDemoCreateAll.SQL:
@@ -693,7 +693,7 @@ Resources:
         #         -DomainNetBIOSName ${DomainNetBIOSName} -DBMasterUsername ${DBMasterUsername}
         #         -DBMasterUserPassword ${DBMasterUserPassword}'
         #       waitAfterCompletion: '0'
-        090-Finalize:
+        060-Finalize:
           commands:
             a-finalize-init:
               command: powershell.exe -Command Write-AWSQuickStartStatus

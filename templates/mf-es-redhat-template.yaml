@@ -500,7 +500,7 @@ Resources:
             #   - 000-NoOperation
             # - !If
             #   - InstallingPACDemoApp
-            - 040-Setup-PAC-Database-Envrionment
+            - 030-Setup-PAC-Database-Envrionment
               # - 000-NoOperation
             # - !If
             #   - InstallingFSDemoApp
@@ -512,7 +512,7 @@ Resources:
             #   - 000-NoOperation
             # - !If
             #   - InstallingPACDemoApp
-            - 060-InstallBankDemoPAC
+            - 040-InstallBankDemoPAC
               # - 000-NoOperation
             # - !If
             #   - InstallingFSDemoApp
@@ -524,7 +524,7 @@ Resources:
             # #   - 000-NoOperation
             # - !If
             #   - InstallingPACDemoApp
-            - 100-StartBNKDM
+            - 050-StartBNKDM
               # - 000-NoOperation
         000-NoOperation:
           commands:
@@ -593,38 +593,38 @@ Resources:
             b-start-mfds:
               command:
                 ./tmp/Start-MFDS.sh
-        030-ConfigureODBC:
-          files:
-            '/tmp/Install-ODBC.sh':
-              source: !Sub
-                - >-
-                  https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/Install-ODBC.sh
-                - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
-                  S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
-              mode: 000550
-              owner: root
-              group: root
-              authentication: S3AccessCreds
-            '/tmp/Configure-ODBC.sh':
-              source: !Sub
-                - >-
-                  https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/Configure-ODBC.sh
-                - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
-                  S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
-              mode: 000550
-              owner: root
-              group: root
-              authentication: S3AccessCreds
-          commands:
-            a-InstallDrivers:
-              command:
-                ./tmp/Install-ODBC.sh
-              waitAfterCompletion: '0'
-            b-AddDSNEntries:
-              command:
-                ./tmp/Configure-ODBC.sh ESDatabase
-              waitAfterCompletion: '0'
-        040-Setup-PAC-Database-Envrionment:
+        # 030-ConfigureODBC:
+        #   files:
+        #     '/tmp/Install-ODBC.sh':
+        #       source: !Sub
+        #         - >-
+        #           https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/Install-ODBC.sh
+        #         - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
+        #           S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
+        #       mode: 000550
+        #       owner: root
+        #       group: root
+        #       authentication: S3AccessCreds
+        #     '/tmp/Configure-ODBC.sh':
+        #       source: !Sub
+        #         - >-
+        #           https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/Configure-ODBC.sh
+        #         - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
+        #           S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
+        #       mode: 000550
+        #       owner: root
+        #       group: root
+        #       authentication: S3AccessCreds
+        #   commands:
+        #     a-InstallDrivers:
+        #       command:
+        #         ./tmp/Install-ODBC.sh
+        #       waitAfterCompletion: '0'
+        #     b-AddDSNEntries:
+        #       command:
+        #         ./tmp/Configure-ODBC.sh ESDatabase
+        #       waitAfterCompletion: '0'
+        030-Setup-PAC-Database-Envrionment:
           files:
             '/tmp/Create-ps-DSN.sh':
               source: !Sub
@@ -641,37 +641,37 @@ Resources:
               command: !Sub
                 /tmp/Create-ps-DSN.sh ${PACDBMasterUserPassword}
               waitAfterCompletion: '0'
-        050-InstallBankDemoFS:
-          files:
-            '/tmp/Mount-Networkshare.sh':
-              source: !Sub
-                - >-
-                  https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/Mount-Networkshare.sh
-                - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
-                  S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
-              mode: 000550
-              owner: root
-              group: root
-              authentication: S3AccessCreds
-            '/tmp/Install-Region.sh':
-              source: !Sub
-                - >-
-                  https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/Install-Region.sh
-                - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
-                  S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
-              mode: 000550
-              owner: root
-              group: root
-              authentication: S3AccessCreds
-          commands:
-            a-ImportBNKDMFS:
-              command:
-                ./tmp/Install-Region.sh "/home/ec2-user/BankDemo_FS/Repo/BNKDMFS.xml"
-              waitAfterCompletion: '0'
-            b-MountNetworkShare:
-              command:
-                ./tmp/Mount-Networkshare.sh
-        060-InstallBankDemoPAC:
+        # 050-InstallBankDemoFS:
+        #   files:
+        #     '/tmp/Mount-Networkshare.sh':
+        #       source: !Sub
+        #         - >-
+        #           https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/Mount-Networkshare.sh
+        #         - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
+        #           S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
+        #       mode: 000550
+        #       owner: root
+        #       group: root
+        #       authentication: S3AccessCreds
+        #     '/tmp/Install-Region.sh':
+        #       source: !Sub
+        #         - >-
+        #           https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/Install-Region.sh
+        #         - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
+        #           S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
+        #       mode: 000550
+        #       owner: root
+        #       group: root
+        #       authentication: S3AccessCreds
+        #   commands:
+        #     a-ImportBNKDMFS:
+        #       command:
+        #         ./tmp/Install-Region.sh "/home/ec2-user/BankDemo_FS/Repo/BNKDMFS.xml"
+        #       waitAfterCompletion: '0'
+        #     b-MountNetworkShare:
+        #       command:
+        #         ./tmp/Mount-Networkshare.sh
+        040-InstallBankDemoPAC:
           files:
             '/tmp/Install-Region.sh':
               source: !Sub
@@ -764,41 +764,41 @@ Resources:
         #       command: !Sub
         #         /tmp/Setup-XA-resource.sh ${DBMasterUserPassword}
         #       waitAfterCompletion: '0'
-        080-StartBNKDMFS:
-          files:
-            '/tmp/Start-Region.sh':
-              source: !Sub
-                - >-
-                  https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/Start-Region.sh
-                - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
-                  S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
-              mode: 000550
-              owner: root
-              group: root
-              authentication: S3AccessCreds
-          commands:
-            a-StartBNKDMFS:
-              command:
-                ./tmp/Start-Region.sh BNKDMFS 32
-              waitAfterCompletion: '0'
-        090-StartBNKDMSQL:
-          files:
-            '/tmp/Start-Region.sh':
-              source: !Sub
-                - >-
-                  https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/Start-Region.sh
-                - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
-                  S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
-              mode: 000550
-              owner: root
-              group: root
-              authentication: S3AccessCreds
-          commands:
-            a-StartBNKDMSQL:
-              command:
-                ./tmp/Start-Region.sh BNKDMSQL 64
-              waitAfterCompletion: '0'
-        100-StartBNKDM:
+        # 080-StartBNKDMFS:
+        #   files:
+        #     '/tmp/Start-Region.sh':
+        #       source: !Sub
+        #         - >-
+        #           https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/Start-Region.sh
+        #         - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
+        #           S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
+        #       mode: 000550
+        #       owner: root
+        #       group: root
+        #       authentication: S3AccessCreds
+        #   commands:
+        #     a-StartBNKDMFS:
+        #       command:
+        #         ./tmp/Start-Region.sh BNKDMFS 32
+        #       waitAfterCompletion: '0'
+        # 090-StartBNKDMSQL:
+        #   files:
+        #     '/tmp/Start-Region.sh':
+        #       source: !Sub
+        #         - >-
+        #           https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/Start-Region.sh
+        #         - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
+        #           S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
+        #       mode: 000550
+        #       owner: root
+        #       group: root
+        #       authentication: S3AccessCreds
+        #   commands:
+        #     a-StartBNKDMSQL:
+        #       command:
+        #         ./tmp/Start-Region.sh BNKDMSQL 64
+        #       waitAfterCompletion: '0'
+        050-StartBNKDM:
           files:
             '/tmp/Start-Region.sh':
               source: !Sub
