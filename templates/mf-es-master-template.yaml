@@ -76,34 +76,10 @@ Metadata:
       - Label:
           default: PAC Configuration
         Parameters:
-          # - InstallPACDemoApp
           - PACDBInstanceClass
           - PACDBMasterUsername
           - PACDBMasterUserPassword
           - PACDBMasterUserPasswordConfirm
-      # - Label:
-      #     default: Enterprise Server Fileshare Configuration
-      #   Parameters:
-      #     - FileshareType
-      #     - InstallFSDemoApp
-      #     - FSInstanceType
-      #     - FSStorageInGiB
-      #     - FSVIEWUserPassword
-      #     - FSVIEWUserPasswordConfirm
-      # - Label:
-      #     default: Database Configuration
-      #   Parameters:
-      #     - DatabaseType
-      #     - InstallSQLDemoApp
-      #     - DBInstanceClass
-      #     - DBStorageInGiB
-      #     - DBMasterUsername
-      #     - DBMasterUserPassword
-      #     - DBMasterUserPasswordConfirm
-      #     - DeployMultiAZ
-      #     - DBBackupRetentionPeriod
-      #     - DBPreferredBackupWindow
-      #     - DBPreferredMaintenanceWindow
       - Label:
           default: Enterprise Server Demo Apps Configuration
         Parameters:
@@ -125,28 +101,8 @@ Metadata:
         default: Allowed Bastion External Access CIDR
       BastionInstanceType:
         default: Bastion Instance Type
-      # DatabaseType:
-      #   default: Database type
-      # DBBackupRetentionPeriod:
-      #   default: Database backup retention period
-      # DBInstanceClass:
-      #   default: Database instance class
-      # DBMasterUserPassword:
-      #   default: Database Master password
-      # DBMasterUserPasswordConfirm:
-      #   default: Re-enter the database Master password
-      # DBMasterUsername:
-      #   default: Database Master username
-      # DBPreferredBackupWindow:
-      #   default: Database preferred backup window
-      # DBPreferredMaintenanceWindow:
-      #   default: Database preferred maintenance window
-      # DBStorageInGiB:
-      #   default: Database allocated storage size
       DemoAppsIngressCIDR:
         default: Allowed Demo Apps external access CIDR
-      # DeployMultiAZ:
-      #   default: Deploy in multiple Availability Zones
       DomainAdminPassword:
         default: Domain Admin account password
       DomainAdminPasswordConfirm:
@@ -173,22 +129,6 @@ Metadata:
         default: Resource 'Name' prefix
       ESS3BucketName:
         default: Enterprise Server S3 bucket name
-      # FileshareType:
-      #   default: Fileshare type
-      # FSInstanceType:
-      #   default: Enterprise Server Fileshare instance type
-      # FSStorageInGiB:
-      #   default: Fileshare allocated storage size
-      # FSVIEWUserPassword:
-      #   default: FSVIEW user password
-      # FSVIEWUserPasswordConfirm:
-      #   default: Re-enter the FSVIEW user password
-      # InstallPACDemoApp:
-      #   default: Install PAC Demo App
-      # InstallFSDemoApp:
-      #   default: Install Fileshare Demo App
-      # InstallSQLDemoApp:
-      #   default: Install SQLServer Demo App
       KeyPairName:
         default: Key pair name
       LicenseAgreement:
@@ -282,85 +222,6 @@ Parameters:
     Default: t3.micro
     Description: The Amazon EC2 instance type for the Bastion instances.
     Type: String
-  # DatabaseType:
-  #   AllowedValues:
-  #     - None
-  #     - Create-RDS-Remote-Database
-  #   Default: None
-  #   Description: >-
-  #     If you choose 'None', the remaining Database Configuration parameters are
-  #     ignored.
-  #   Type: String
-  # DBBackupRetentionPeriod:
-  #   Description: >-
-  #     Select the number of days that Amazon RDS should retain automatic backups
-  #     of the DB instance. A backup retention period of zero days will disable
-  #     automated backups for the DB Instance.
-  #   Default: 30
-  #   MinValue: 0
-  #   MaxValue: 35
-  #   Type: Number
-  # DBInstanceClass:
-  #   AllowedValues:
-  #     - db.r4.large
-  #     - db.r4.xlarge
-  #     - db.r4.2xlarge
-  #     - db.r4.4xlarge
-  #     - db.r2.8xlarge
-  #   Description: The type of Amazon RDS DB instance.
-  #   Default: db.r4.large
-  #   Type: String
-  # DBMasterUsername:
-  #   Description: >-
-  #     Specify an alphanumeric string that defines the login ID for the master
-  #     user. Master user name must start with a letter. Must contain 1 to 64
-  #     alphanumeric characters.
-  #   AllowedPattern: >-
-  #     ^[a-zA-Z][a-zA-Z0-9]{1,64}$
-  #   ConstraintDescription: >-
-  #     Must start with a letter. Must contain 1 to 64 alphanumeric characters.
-  #   Default: DBAdmin
-  #   Type: String
-  # DBMasterUserPassword:
-  #   AllowedPattern: >-
-  #     ^((?![\/"@])[^\x00-\x1F\x80-\x9F]){8,}$
-  #   ConstraintDescription: >-
-  #     Must be at least eight characters long, as in "mypassword". Can be any
-  #     printable ASCII character except "/", """, or "@".
-  #   Description: >-
-  #     The password for the DB master user. Must be at least eight characters
-  #     long, as in "mypassword". Can be any printable ASCII character 
-  #     except "/", """, or "@".
-  #   Type: String
-  #   NoEcho: true
-  # DBMasterUserPasswordConfirm:
-  #   AllowedPattern: >-
-  #     ^((?![\/"@])[^\x00-\x1F\x80-\x9F]){8,}$
-  #   ConstraintDescription: >-
-  #     Must be at least eight characters long, as in "mypassword". Can be any
-  #     printable ASCII character except "/", """, or "@".
-  #   Description: >-
-  #     Confirm the password for the DB master user. Must be at least eight
-  #     characters long, as in "mypassword". Can be any printable ASCII character
-  #     except "/", """, or "@".
-  #   Type: String
-  #   NoEcho: true
-  # DBPreferredBackupWindow:
-  #   Description: >-
-  #     (optional) Must be in the format hh24:mi-hh24:mi, in UTC. Must be at least 30
-  #     minutes, and must not conflict with the preferred maintenance window.
-  #   Type: String
-  # DBPreferredMaintenanceWindow:
-  #   Description: >-
-  #     (optional) Must be in the format ddd:hh24:mi-ddd:hh24:mi, in UTC. Must be at least 30
-  #     minutes.
-  #   Type: String
-  # DBStorageInGiB:
-  #   Type: Number
-  #   Description: Enter 20-16384 GiB.
-  #   MinValue: 20
-  #   MaxValue: 16384
-  #   Default: 100
   DemoAppsIngressCIDR:
     AllowedPattern: >-
       ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$
@@ -369,14 +230,6 @@ Parameters:
       The allowed CIDR block for external access to the demo apps. The CIDR block
       parameter must be in the form x.x.x.x/x.
     Type: String
-  # DeployMultiAZ:
-  #   AllowedValues:
-  #     - true
-  #     - false
-  #   Default: false
-  #   Description: >-
-  #     Choose 'true' to deploy the database across multiple Availability Zones.
-  #   Type: String
   DomainAdminPassword:
     AllowedPattern: >-
       (?=^.{6,255}$)((?=.*\d)(?=.*[A-Z])(?=.*[a-z])|(?=.*\d)(?=.*[^A-Za-z0-9])(?=.*[a-z])|(?=.*[^A-Za-z0-9])(?=.*[A-Z])(?=.*[a-z])|(?=.*\d)(?=.*[A-Z])(?=.*[^A-Za-z0-9]))^.*
@@ -546,85 +399,6 @@ Parameters:
       numbers, lowercase letters, uppercase letters, and hyphens (-). It cannot
       start or end with a hyphen (-).
     Type: String
-  # FSInstanceType:
-  #   AllowedValues:
-  #     - c5.large
-  #     - c5.xlarge
-  #     - c5.2xlarge
-  #     - c5.4xlarge
-  #   Description: The type of Enterprise Server Fileshare instance.
-  #   Default: c5.large
-  #   Type: String
-  # FSStorageInGiB:
-  #   Default: 250
-  #   Description: Enter 1-16384 GiB.
-  #   MaxValue: 16384
-  #   MinValue: 1
-  #   Type: Number
-  # FileshareType:
-  #   AllowedValues:
-  #     - None
-  #     - Create-Remote-Fileshare-Server
-  #   Default: None
-  #   Description: >-
-  #     If you choose 'None', the remaining Fileshare Configuration parameters
-  #     are ignored.
-  #   Type: String
-  # FSVIEWUserPassword:
-  #   AllowedPattern: >-
-  #     ^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,32}$
-  #   Description: >-
-  #     The password for the FSVIEW user. Must contain 8 to 32 characters,
-  #     at least one uppercase letter, one lowercase letter, one number and
-  #     one special character.
-  #   ConstraintDescription: >-
-  #     Must contain 8 to 32 characters, at least one uppercase letter, one
-  #     lowercase letter, one number and one special character.
-  #   MaxLength: '32'
-  #   MinLength: '8'
-  #   NoEcho: true
-  #   Type: String
-  # FSVIEWUserPasswordConfirm:
-  #   AllowedPattern: >-
-  #     ^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,32}$
-  #   Description: >-
-  #     Confirm the password for the FSVIEW user. Must contain 8 to 32 characters,
-  #     at least one uppercase letter, one lowercase letter, one number and
-  #     one special character.
-  #   ConstraintDescription: >-
-  #     Must contain 8 to 32 characters, at least one uppercase letter, one
-  #     lowercase letter, one number and one special character.
-  #   MaxLength: '32'
-  #   MinLength: '8'
-  #   NoEcho: true
-  #   Type: String
-  # InstallPACDemoApp:
-  #   Type: String
-  #   AllowedValues:
-  #     - true
-  #     - false
-  #   Default: true
-  #   Description: >-
-  #     Choose 'false' if you don't want to install the Enterprise Server PAC demo
-  #     app.
-  # InstallFSDemoApp:
-  #   Type: String
-  #   AllowedValues:
-  #     - true
-  #     - false
-  #   Default: false
-  #   Description: >-
-  #     Choose 'true' if you want to install the Enterprise Server Fileshare demo
-  #     app. Requires selection of the 'Create-Remote-Fileshare-Server' Fileshare type.
-  # InstallSQLDemoApp:
-  #   AllowedValues:
-  #     - true
-  #     - false
-  #   Default: false
-  #   Description: >-
-  #     Choose 'true' if you want to install the Enterprise Server SQLServer demo
-  #     app. Requires selection of the 'Create-RDS-Remote-Database' Database type.
-  #   Type: String
   KeyPairName:
     Description: >-
       The name of an existing EC2 key pair. All instances will launch with this key pair.
@@ -804,12 +578,6 @@ Parameters:
     Description: The CIDR block for the VPC. The CIDR block must be in the form x.x.x.x/16-28.
     Type: String
 Rules:
-  # DBMasterUserPasswordMatchRule:
-  #   Assertions:
-  #     - Assert: !Equals
-  #         - !Ref DBMasterUserPassword
-  #         - !Ref DBMasterUserPasswordConfirm
-  #       AssertDescription: Database Master password values do not match.
   DomainAdminPasswordsMatchRule:
     Assertions:
       - Assert: !Equals
@@ -822,12 +590,6 @@ Rules:
           - !Ref ESDemoUserPassword
           - !Ref ESDemoUserPasswordConfirm
         AssertDescription: Enterprise Server Demo user password values do not match.
-  # FSVIEWUserPasswordMatchRule:
-  #   Assertions:
-  #     - Assert: !Equals
-  #         - !Ref FSVIEWUserPassword
-  #         - !Ref FSVIEWUserPasswordConfirm
-  #       AssertDescription: FSVIEW user password values do not match.
   MFDSServiceAccountPasswordsMatchRule:
     Assertions:
       - Assert: !Equals
@@ -870,40 +632,6 @@ Rules:
         AssertDescription: This Quick Start utilizes AWS Directory Service which is not available in the chosen region.
           Please refer to https://docs.aws.amazon.com/general/latest/gr/rande.html#ds_region for a list
           of currently supported regions and launch the stack in one of those regions.
-  # RDSWinAthSupportedRegionRule:
-  #   RuleCondition: !Equals
-  #     - !Ref DatabaseType
-  #     - Create-RDS-Remote-Database
-  #   Assertions:
-  #     - Assert: !Contains
-  #         - - us-east-2          # US East (Ohio)
-  #           - us-east-1          # US East (N. Virginia)
-  #           # - us-west-1          # US West (N. California) --> RDS-WinAuth not supported 2020-Feb-07
-  #           - us-west-2          # US West (Oregon)
-  #           - ap-east-1          # Asia Pacific (Hong Kong)
-  #           # - ap-south-1         # Asia Pacific (Mumbai) --> RDS-WinAuth not supported 2020-Feb-07
-  #           - ap-northeast-3     # Asia Pacific (Osaka-Local)
-  #           - ap-northeast-2     # Asia Pacific (Seoul)
-  #           - ap-southeast-1     # Asia Pacific (Singapore)
-  #           - ap-southeast-2     # Asia Pacific (Sydney)
-  #           - ap-northeast-1     # Asia Pacific (Tokyo)
-  #           - ca-central-1       # Canada (Central)
-  #           - cn-north-1         # China (Beijing)
-  #           - cn-northwest-1     # China (Ningxia)
-  #           - eu-central-1       # Europe (Frankfurt)
-  #           - eu-west-1          # Europe (Ireland)
-  #           - eu-west-2          # Europe (London)
-  #           - eu-west-3          # Europe (Paris)
-  #           - eu-north-1         # Europe (Stockholm)
-  #           - me-south-1         # Middle East (Bahrain)
-  #           # - sa-east-1          # South America (Sao Paulo) --> RDS-WinAuth not supported 2020-Feb-07
-  #           # - us-gov-east-1      # AWS GovCloud (US-East) --> RDS-WinAuth not supported 2020-Feb-07
-  #           # - us-gov-west-1      # AWS GovCloud (US-West) --> RDS-WinAuth not supported 2020-Feb-07
-  #         - !Ref AWS::Region
-  #       AssertDescription: This Quick Start utilizes Amazon Relational Database Service (Amazon RDS) Windows
-  #         Authentication which is not available in the chosen region. Please refer to
-  #         https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_SQLServerWinAuth.html
-  #         for more details and launch the stack in one of the supported regions.
   ESSupportedRegionRule:
     Assertions:
       - Assert: !Contains
@@ -940,30 +668,6 @@ Rules:
             - - I agree
             - !Ref LicenseAgreement
         AssertDescription: User must agree to the terms of the license agreement.
-  # InstallFSDemoAppRule:
-  #   RuleCondition: !Equals
-  #     - !Ref InstallFSDemoApp
-  #     - 'true'
-  #   Assertions:
-  #     - Assert: !Not
-  #         - !Equals
-  #           - !Ref FileshareType
-  #           - None
-  #       AssertDescription: >-
-  #         Either choose a Fileshare Type or select 'false' for Install Fileshare
-  #         Demo App parameter.
-  # InstallSQLDemoAppRule:
-  #   RuleCondition: !Equals
-  #     - !Ref InstallSQLDemoApp
-  #     - 'true'
-  #   Assertions:
-  #     - Assert: !Not
-  #         - !Equals
-  #           - !Ref DatabaseType
-  #           - None
-  #       AssertDescription: >-
-  #         Either choose a Database Type or select 'false' for Install SQLServer
-  #         Demo App parameter.
 Conditions:
   UsingDefaultBucket: !Equals [!Ref QSS3BucketName, 'aws-quickstart']
   IncludeBastion: !Not
@@ -974,25 +678,6 @@ Conditions:
     - !Equals
       - !Ref NumberOfRDGWHosts
       - None
-  # InstallingAtLeastOneDemoApp: #!Or
-  #   # - !Condition InstallingFSDemoApp
-  #   # - !Condition InstallingSQLDemoApp
-  #   # - !Condition InstallingPACDemoApp
-  #   !Equals
-  #   - !Ref InstallPACDemoApp
-  #   - 'true'
-  # InstallingPACDemoApp: !Equals
-  #   - !Ref InstallPACDemoApp
-  #   - 'true'
-  # InstallingFSDemoApp: !Equals
-  #   - !Ref InstallFSDemoApp
-  #   - 'true'
-  # InstallingSQLDemoApp: !Equals
-  #   - !Ref InstallSQLDemoApp
-  #   - 'true'
-  # GovCloudCondition: !Equals
-  #   - !Ref 'AWS::Region'
-  #   - us-gov-west-1
 Resources:
   VPCStack:
     Type: 'AWS::CloudFormation::Stack'
@@ -1251,17 +936,7 @@ Resources:
         AvailabilityZones: !Join
           - ','
           - !Ref AvailabilityZones
-        # DatabaseType: !Ref DatabaseType
-        # DBBackupRetentionPeriod: !Ref DBBackupRetentionPeriod
-        # DBInstanceClass: !Ref DBInstanceClass
-        # DBMasterUsername: !Ref DBMasterUsername
-        # DBMasterUserPassword: !Ref DBMasterUserPassword
-        # DBMasterUserPasswordConfirm: !Ref DBMasterUserPasswordConfirm
-        # DBPreferredBackupWindow: !Ref DBPreferredBackupWindow
-        # DBPreferredMaintenanceWindow: !Ref DBPreferredMaintenanceWindow
-        # DBStorageInGiB: !Ref DBStorageInGiB
         DemoAppsIngressCIDR: !Ref DemoAppsIngressCIDR
-        # DeployMultiAZ: !Ref DeployMultiAZ
         DirectoryServiceID: !Ref DSMicrosoftAD
         DomainAdminPassword: !Ref DomainAdminPassword
         DomainAdminPasswordConfirm: !Ref DomainAdminPasswordConfirm
@@ -1277,14 +952,6 @@ Resources:
         ESLicenseFilename: !Ref ESLicenseFilename
         ESResourceNamePrefix: !Ref ESResourceNamePrefix
         ESS3BucketName: !Ref ESS3BucketName
-        # FileshareType: !Ref FileshareType
-        # FSInstanceType: !Ref FSInstanceType
-        # FSStorageInGiB: !Ref FSStorageInGiB
-        # FSVIEWUserPassword: !Ref FSVIEWUserPassword
-        # FSVIEWUserPasswordConfirm: !Ref FSVIEWUserPasswordConfirm
-        # InstallFSDemoApp: !Ref InstallFSDemoApp
-        # InstallSQLDemoApp: !Ref InstallSQLDemoApp
-        # InstallPACDemoApp: !Ref InstallPACDemoApp
         KeyPairName: !Ref KeyPairName
         LicenseAgreement: !Ref LicenseAgreement
         MFDSServiceAccountName: !Ref MFDSServiceAccountName
@@ -1317,7 +984,6 @@ Outputs:
     Description: Microsoft directory service ID
     Value: !Ref DSMicrosoftAD
   ESDemoAppsPublicNetworkLoadBalancer:
-    # Condition: InstallingAtLeastOneDemoApp
     Description: The DNS name of the Enterprise Server public load balancer
     Value: !GetAtt EnterpriseServerWorkloadStack.Outputs.ESDemoAppsPublicNetworkLoadBalancer
   RemoteDesktopGatewayIP:

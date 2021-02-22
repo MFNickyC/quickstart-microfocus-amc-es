@@ -36,20 +36,8 @@ Metadata:
         - PACDBMasterUsername
         - PACDBMasterUserPassword
     - Label:
-        default: Fileshare Configuration
-      Parameters:
-      - FileshareDataFolderUNC
-    # - Label:
-    #     default: Database Configuration
-    #   Parameters:
-    #   - DBMasterUsername
-    #   - DBMasterUserPassword
-    #   - ESDatabaseEndpointAddress
-    - Label:
         default: Enterprise Server Demo Apps Configuration
       Parameters:
-      # - InstallFSDemoApp
-      # - InstallSQLDemoApp
       - ESDemoUserPassword
     - Label:
         default: AWS Quick Start Configuration
@@ -60,10 +48,6 @@ Metadata:
     ParameterLabels:
       AvailabilityZones:
         default: Availability Zones
-      # DBMasterUserPassword:
-      #   default: Database Master password
-      # DBMasterUsername:
-      #   default: Database Master username
       DomainAdminPassword:
         default: Domain Admin account password
       DomainDNSName:
@@ -76,16 +60,8 @@ Metadata:
         default: ES Client Access Security Group ID
       ESDemoUserPassword:
         default: Enterprise Server Demo User password
-      # ESDatabaseEndpointAddress:
-      #   default: Enterprise Server Database Endpoint Address
       ESS3BucketName:
         default: Enterprise Server S3 bucket name
-      FileshareDataFolderUNC:
-        default: FileShare Data Folder UNC
-      # InstallFSDemoApp:
-      #   default: Install Fileshare Demo App
-      # InstallSQLDemoApp:
-      #   default: Install SQLServer Demo App
       KeyPairName:
         default: Key pair name
       MFDSServiceAccountName:
@@ -112,24 +88,6 @@ Parameters:
       The Quick Start uses two Availability Zones from your list and preserves the
       logical order you specify.
     Type: List<AWS::EC2::AvailabilityZone::Name>
-  # DBMasterUsername:
-  #   Description: Specify an alphanumeric string that defines the login ID for the
-  #     master user. Master Username must start with a letter. Must contain 1 to 64
-  #     alphanumeric characters.
-  #   AllowedPattern: ^[a-zA-Z][a-zA-Z0-9]{1,64}$
-  #   ConstraintDescription: Must start with a letter. Must contain 1 to 64 alphanumeric
-  #     characters.
-  #   Default: DBAdmin
-  #   Type: String
-  # DBMasterUserPassword:
-  #   AllowedPattern: ^((?![\/"@])[^\x00-\x1F\x80-\x9F]){8,}$
-  #   ConstraintDescription: Must be at least eight characters long, as in "mypassword".
-  #     Can be any printable ASCII character except "/", """, or "@".
-  #   Description: The password for the DB master user. Must be at least eight characters
-  #     long, as in "mypassword". Can be any printable ASCII character except "/", """,
-  #     or "@".
-  #   Type: String
-  #   NoEcho: true
   DomainAdminPassword:
     AllowedPattern: (?=^.{6,255}$)((?=.*\d)(?=.*[A-Z])(?=.*[a-z])|(?=.*\d)(?=.*[^A-Za-z0-9])(?=.*[a-z])|(?=.*[^A-Za-z0-9])(?=.*[A-Z])(?=.*[a-z])|(?=.*\d)(?=.*[A-Z])(?=.*[^A-Za-z0-9]))^.*
     Description: The password for the domain Admin account. Must be at least 8 characters
@@ -160,10 +118,6 @@ Parameters:
     Type: AWS::EC2::SecurityGroup::Id
     Description: Security Group ID for application ingress into the Enterpriser Server
       instance (e.g., sg-1234abcd).
-  # ESDatabaseEndpointAddress:
-  #   Type: String
-  #   Description: The connection endpoint for the database
-  #   Default: ''
   ESPACDatabaseEndpointAddress:
     Type: String
     Description: The connection endpoint for the PAC database
@@ -187,36 +141,6 @@ Parameters:
       lowercase letters, uppercase letters, and hyphens (-). It cannot start or end
       with a hyphen (-).
     Type: String
-  FileshareDataFolderUNC:
-    Type: String
-    Description: The UNC of the Enterprise Server Fileshare data folder
-    Default: ''
-  # InstallFSDemoApp:
-  #   Type: String
-  #   AllowedValues:
-  #   - true
-  #   - false
-  #   Default: true
-  #   Description: Choose 'false' if you don't want to install the Enterprise Server
-  #     Fileshare demo app. Requires selection of the 'Create-Remote-Fileshare-Server'
-  #     Fileshare type.
-  # InstallPACDemoApp:
-  #   AllowedValues:
-  #   - true
-  #   - false
-  #   Default: true
-  #   Description: Choose 'false' if you don't want to install the Enterprise Server
-  #     PAC demo app.
-  #   Type: String
-  # InstallSQLDemoApp:
-  #   AllowedValues:
-  #   - true
-  #   - false
-  #   Default: true
-  #   Description: Choose 'false' if you don't want to install the Enterprise Server
-  #     SQLServer demo app. Requires selection of the 'Create-RDS-Remote-Database' Database
-  #     type.
-  #   Type: String
   KeyPairName:
     Description: The name of an existing EC2 key pair. All instances will launch with
       this key pair.
@@ -310,30 +234,6 @@ Conditions:
     !Equals
     - !Ref AWS::Region
     - us-gov-west-1
-  # InstallingAtLeastOneDemoApp: #!Or
-  #   # - !Condition InstallingFSDemoApp
-  #   # - !Condition InstallingSQLDemoApp
-  #   # - !Condition InstallingPACDemoApp
-  #   !Equals
-  #   - !Ref InstallPACDemoApp
-  #   - 'true'
-  # InstallingFSDemoApp:
-  #   !Equals
-  #   - !Ref InstallFSDemoApp
-  #   - 'true'
-  # InstallingPACDemoApp:
-  #   !Equals
-  #   - !Ref InstallPACDemoApp
-  #   - 'true'
-  # InstallingSQLDemoApp:
-  #   !Equals
-  #   - !Ref InstallSQLDemoApp
-  #   - 'true'
-  # HaveDatabaseEnvironment:
-  #   !Not
-  #   - !Equals
-  #     - !Ref ESDatabaseEndpointAddress
-  #     - ''
   CreateMFDSServiceAccount:
     !Or
     - !Equals
@@ -411,30 +311,12 @@ Resources:
           config:
             - 010-InitPowerShell
             - 020-RenameAndJoinDomain
-            # - !If
-            #   - HaveDatabaseEnvironment
-            #   - 030-Setup-Database-Client-Environment
-            #   - 000-NoOperation
-            # - !If
-            #   - InstallingPACDemoApp
             - 030-Setup-PAC-Database-Environment
-              # - 000-NoOperation
             - !If
               - CreateMFDSServiceAccount
               - 040-CreateMFDSServiceAccount
               - 000-NoOperation
-            # - !If
-            #   - InstallingAtLeastOneDemoApp
             - 050-CreateBankDemoDomainUser
-            #   - 000-NoOperation
-            # - !If
-            #   - InstallingFSDemoApp
-            #   - 070-InstallBankDemoFS
-            #   - 000-NoOperation
-            # - !If
-            #   - InstallingSQLDemoApp
-            #   - 080-InstallBankDemoSQL
-            #   - 000-NoOperation
             - 060-Finalize
         000-NoOperation:
           commands:
@@ -541,37 +423,6 @@ Resources:
                 -Name GPMC,RSAT-AD-PowerShell,RSAT-AD-AdminCenter,RSAT-ADDS-Tools,RSAT-DNS-Server;
                 } catch { $_ | Write-AWSQuickStartException; } }"'
               waitAfterCompletion: '0'
-        # 030-Setup-Database-Client-Environment:
-        #   files:
-        #     c:\cfn\assets\msodbcsql.msi:
-        #       source: https://download.microsoft.com/download/D/5/E/D5EEF288-A277-45C8-855B-8E2CB7E25B96/x64/msodbcsql.msi
-        #     c:\cfn\assets\MsSqlCmdLnUtils.msi:
-        #       source: https://download.microsoft.com/download/C/8/8/C88C2E51-8D23-4301-9F4B-64C8E2F163C5/x64/MsSqlCmdLnUtils.msi
-        #     c:\cfn\scripts\Schedule-AD-AddDNSServerResourceRecordCName.ps1:
-        #       source:
-        #         !Sub
-        #         - https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/Schedule-AD-AddDNSServerResourceRecordCName.ps1
-        #         - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
-        #           S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
-        #       authentication: S3AccessCreds
-        #   commands:
-        #     a-schedule-add-database-cname-to-dns:
-        #       command: !Sub 'powershell.exe -File C:\cfn\scripts\Schedule-AD-AddDNSServerResourceRecordCName.ps1
-        #         -CName ESDatabase -HostNameAlias ${ESDatabaseEndpointAddress} -DomainDnsName
-        #         ${DomainDNSName} -DomainUserName Admin -DomainUserPassword ${DomainAdminPassword}'
-        #       waitAfterCompletion: '0'
-        #     b-install-mssqlserver-odbcdriver:
-        #       command: start /wait msiexec /quiet /passive /qn /i c:\cfn\assets\msodbcsql.msi
-        #         IACCEPTMSODBCSQLLICENSETERMS=YES ADDLOCAL=ALL
-        #       waitAfterCompletion: '0'
-        #     c-install-MsSql-CmdLn-Utils:
-        #       command: start /wait msiexec /quiet /passive /qn /i c:\cfn\assets\MsSqlCmdLnUtils.msi
-        #         IACCEPTMSSQLCMDLNUTILSLICENSETERMS=YES
-        #       waitAfterCompletion: '0'
-        #     d-add-mssql-cmdln-utils-to-system-path:
-        #       command: powershell.exe -File c:\cfn\scripts\AddTo-SystemPath.ps1 -PathToAdd
-        #         "c:\Program Files\Microsoft SQL Server\Client SDK\ODBC\130\Tools\Binn"
-        #       waitAfterCompletion: '0'
         030-Setup-PAC-Database-Environment:
           files:
             'c:\cfn\scripts\Download-postgres-tools.ps1':
@@ -654,45 +505,6 @@ Resources:
                 ESDemoUser -DomainDnsName ${DomainDNSName} -DomainUserName
                 Admin -DomainUserPassword ${DomainAdminPassword}'
               waitAfterCompletion: '0'
-        # 070-InstallBankDemoFS:
-        #   files:
-        #     c:\cfn\scripts\Create-Mapped-Drive-GPO.ps1:
-        #       source:
-        #         !Sub
-        #         - https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/Create-Mapped-Drive-GPO.ps1
-        #         - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
-        #           S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
-        #       authentication: S3AccessCreds
-        #   commands:
-        #     a-create-fsserver-mapped-drive-gpo:
-        #       command: !Sub 'powershell.exe -File c:\cfn\scripts\Schedule-AD-PowershellTask.ps1
-        #         -TaskName Create-FSServer-Mapped-Drive-GPO -TaskArguments "-File C:\cfn\scripts\Create-Mapped-Drive-GPO.ps1
-        #         -PolicyName FSServer-FSDir-Share-Drive-Map -DriveLetter Z -FileshareDataFolderUNC
-        #         ${FileshareDataFolderUNC} -DomainDnsName ${DomainDNSName}" -DomainUserName
-        #         "${DomainNetBIOSName}\Admin" -DomainUserPassword "${DomainAdminPassword}"'
-        #       waitAfterCompletion: '0'
-        # 080-InstallBankDemoSQL:
-        #   files:
-        #     C:\BankDemo_SQL\System\BankDemoCreateAll.SQL:
-        #       source:
-        #         !Sub
-        #         - https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/BankDemoCreateAll.SQL
-        #         - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
-        #           S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
-        #       authentication: S3AccessCreds
-        #     c:\cfn\scripts\Prep-BankDemoDatabase.ps1:
-        #       source:
-        #         !Sub
-        #         - https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/Prep-BankDemoDatabase.ps1
-        #         - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
-        #           S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
-        #       authentication: S3AccessCreds
-        #   commands:
-        #     a-create-bankdemo-sql-environment:
-        #       command: !Sub 'powershell.exe -File c:\cfn\scripts\Prep-BankDemoDatabase.ps1
-        #         -DomainNetBIOSName ${DomainNetBIOSName} -DBMasterUsername ${DBMasterUsername}
-        #         -DBMasterUserPassword ${DBMasterUserPassword}'
-        #       waitAfterCompletion: '0'
         060-Finalize:
           commands:
             a-finalize-init:
