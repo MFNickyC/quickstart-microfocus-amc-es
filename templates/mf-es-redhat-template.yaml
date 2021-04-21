@@ -33,7 +33,9 @@ Metadata:
           default: Network Configuration
         Parameters:
           - AvailabilityZones
-          - SubnetID
+          - PrivateSubnet1AID
+          - PrivateSubnet2AID
+          - TargetGroup
       - Label:
           default: Microsoft Active Directory Configuration
         Parameters:
@@ -44,10 +46,11 @@ Metadata:
           default: Enterprise Server Configuration
         Parameters:
           - ESInstanceType
+          - MaxNumberOfESInstances
+          - MetricsNamespace
           - KeyPairName
           - RegionsPerInstance
           - AdditionalESStorageinGiB
-          - ESInstanceName
           - ESClientAccessSGID
           - ESS3BucketName
           - EMailNotificationTopic
@@ -76,8 +79,6 @@ Metadata:
         default: EMail Notification Topic
       ESClientAccessSGID:
         default: Enterprise Server Application (Client) Access Security Group ID
-      ESInstanceName:
-        default: Name of the Enterprise Server EC2 instance
       ESInstanceType:
         default: Enterprise Server instance type
       ESLicenseFilename:
@@ -88,10 +89,16 @@ Metadata:
         default: Key pair name
       LicenseAgreement:
         default: License agreement
+      MaxNumberOfESInstances:
+        default: Maximum number of Enterprise Server instances to run simultaneously
+      MetricsNamespace:
+        default: Namespace for the Enterprise Server custom metrics
       PACDBMasterUserPassword:
         default: PAC database Master password
-      SubnetID:
-        default: Subnet ID
+      PrivateSubnet1AID:
+        default: Private Subnet 1A ID
+      PrivateSubnet2AID:
+        default: Private Subnet 2A ID
       QSS3BucketName:
         default: Quick Start S3 bucket name
       QSS3BucketRegion:
@@ -100,6 +107,8 @@ Metadata:
         default: Quick Start S3 key prefix
       RegionsPerInstance:
         default: Number of Enterprise Server regions per instance
+      TargetGroup:
+        default: The target group for the load balancer
 Parameters:
   AdditionalESStorageinGiB:
     Type: Number
@@ -146,9 +155,6 @@ Parameters:
     Description: >-
       Security Group ID for application ingress into the Enterpriser Server
       instance (e.g., sg-1234abcd).
-  ESInstanceName:
-    Type: String
-    Description: The name to assign to the Enterprise Server instance Windows Hostname
   ESInstanceType:
     AllowedValues:
       - c5.large
@@ -187,6 +193,23 @@ Parameters:
       - I agree
       - '-'
     ConstraintDescription: must answer 'I agree'.
+  MaxNumberOfESInstances:
+    Default: 3
+    MinValue: 3
+    MaxValue: 10
+    Description: >-
+      The maximum capacity (3-10) for the Enterprise Server Auto Scaling group.
+    Type: Number
+  MetricsNamespace:
+    Type: String
+    AllowedPattern: '[a-zA-Z0-9\.\-_\/#:]*'
+    Default: Custom
+    Description: >-
+      The namespace must be 1-256 characters. Possible characters are: alphanumeric
+      characters (0-9A-Za-z), period (.), hyphen (-), underscore (_),
+      forward slash (/), hash (#), and colon (:).
+    MaxLength: '256'
+    MinLength: '1'
   PACDBMasterUserPassword:
     AllowedPattern: >-
       ^((?![\/"@])[^\x00-\x1F\x80-\x9F]){8,}$
@@ -199,9 +222,19 @@ Parameters:
       "/", """, or "@".
     Type: String
     NoEcho: true
-  SubnetID:
-    Description: 'The ID of a private subnet in an Availability Zone (e.g., subnet-a0246dcd).'
+  PrivateSubnet1AID:
+    Description: >-
+      The ID of private subnet 1A in Availability Zone 1 (e.g.,
+      subnet-a0246dcd).
     Type: 'AWS::EC2::Subnet::Id'
+  PrivateSubnet2AID:
+    Description: >-
+      The ID of private subnet 2A in Availability Zone 2 (e.g.,
+      subnet-01a43dc1ca1fa7f9b).
+    Type: 'AWS::EC2::Subnet::Id'
+  TargetGroup:
+    Description: 'The target group for the PAC load balancer.'
+    Type: String
   QSS3BucketName:
     AllowedPattern: '^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$'
     ConstraintDescription: >-
@@ -297,10 +330,6 @@ Conditions:
     - !Equals
       - !Ref ESLicenseFilename
       - ''
-  HaveEMailNotificationTopic: !Not
-    - !Equals
-      - !Ref EMailNotificationTopic
-      - ''
 Resources:
   ESInstanceRole:
     Type: 'AWS::IAM::Role'
@@ -316,6 +345,7 @@ Resources:
       Path: /
       ManagedPolicyArns:
         - 'arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM'
+        - 'arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore'
         - 'arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy'
       Policies:
         - PolicyDocument:
@@ -388,23 +418,8 @@ Resources:
       RegionStorageOverheadInGiB: 50
       AdditionalESStorageinGiB: !Ref AdditionalESStorageinGiB
       Value: 0
-  ESPrimaryDataVolume:
-    Type: 'AWS::EC2::Volume'
-    Properties:
-      VolumeType: gp2
-      Size: !GetAtt ESPrimaryDataVolumeStorageSize.Value
-      AvailabilityZone: !Select
-        - 0
-        - !Ref AvailabilityZones
-      Tags:
-        - Key: Name
-          Value: !Sub '${AWS::StackName}-${ESInstanceName} Data Volume'
-  ESInstance:
-    Type: 'AWS::EC2::Instance'
-    CreationPolicy:
-      ResourceSignal:
-        Count: 1
-        Timeout: PT20M
+  ESInstanceLaunchTemplate:
+    Type: 'AWS::EC2::LaunchTemplate'
     Metadata:
       'AWS::CloudFormation::Authentication':
         S3AccessCreds:
@@ -442,24 +457,10 @@ Resources:
               owner: root
               group: root
               authentication: S3AccessCreds
-            '/tmp/RenameHost.sh':
-              source: !Sub
-                - >-
-                  https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/RenameHost.sh
-                - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
-                  S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
-              mode: 000550
-              owner: root
-              group: root
-              authentication: S3AccessCreds
           commands:
             a-JoinDomain:
               command: !Sub
                 ./tmp/JoinTo-Domain-Linux.sh Admin ${DomainDNSName} '${DomainAdminPassword}'
-              waitAfterCompletion: '0'
-            b-RenameMachine:
-              command: !Sub
-                ./tmp/RenameHost.sh ${DomainDNSName} ${ESInstanceName}
               waitAfterCompletion: '0'
         020-ApplyESLicenseFile:
           files:
@@ -485,13 +486,29 @@ Resources:
               owner: root
               group: root
               authentication: S3AccessCreds
+            '/tmp/Start-ESCWA.sh':
+              source: !Sub
+                - >-
+                  https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/Start-ESCWA.sh
+                - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
+                  S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
+              mode: 000550
+              owner: root
+              group: root
+              authentication: S3AccessCreds
           commands:
             a-install-license:
-              command:
-                ./var/microfocuslicensing/bin/cesadmintool.sh -install /tmp/Enterprise-Server.mflic
+              command: |
+                while ! ./var/microfocuslicensing/bin/cesadmintool.sh -install /tmp/Enterprise-Server.mflic
+                do
+                  sleep 1
+                done
             b-start-mfds:
               command:
                 ./tmp/Start-MFDS.sh
+            c-start-escwa:
+              command:
+                ./tmp/Start-ESCWA.sh
         030-Setup-PAC-Database-Envrionment:
           files:
             '/tmp/Create-ps-DSN.sh':
@@ -521,16 +538,6 @@ Resources:
               owner: root
               group: root
               authentication: S3AccessCreds
-            '/tmp/deploy.sh':
-              source: !Sub
-                - >-
-                  https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/deploy.sh
-                - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
-                  S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
-              mode: 000550
-              owner: root
-              group: root
-              authentication: S3AccessCreds
             '/tmp/Add-region-to-PAC.sh':
               source: !Sub
                 - >-
@@ -543,33 +550,11 @@ Resources:
               authentication: S3AccessCreds
           commands:
             a-ImportBNKDM:
-              test: !Sub >-
-                if [ "${ESInstanceName}" == "ESServer1" ];then exit 0; else exit 1 ;fi
               command:
                 ./tmp/Install-Region.sh "/home/ec2-user/BankDemo_PAC/Repo/BNKDM.xml"
-              waitAfterCompletion: '0'
-            b-ImportBNKDM2:
-              test: !Sub >-
-                if [ "${ESInstanceName}" == "ESServer2" ];then exit 0; else exit 1 ;fi
+            b-add-region-to-pac:
               command:
-                ./tmp/Install-Region.sh "/home/ec2-user/BankDemo_PAC/Repo/BNKDM2.xml"
-            c-import-data-files:
-              test: !Sub >-
-                if [ "${ESInstanceName}" == "ESServer1" ];then exit 0; else exit 1 ;fi
-              command:
-                  ./tmp/deploy.sh
-              waitAfterCompletion: '0'
-            d-add-region-to-pac:
-              test: !Sub >-
-                if [ "${ESInstanceName}" == "ESServer1" ];then exit 0; else exit 1 ;fi
-              command: !Sub
-                ./tmp/Add-region-to-PAC.sh ${ESInstanceName} BNKDM
-              waitAfterCompletion: '0'
-            e-add-region-to-pac2:
-              test: !Sub >-
-                if [ "${ESInstanceName}" == "ESServer2" ];then exit 0; else exit 1 ;fi
-              command: !Sub
-                ./tmp/Add-region-to-PAC.sh ${ESInstanceName} BNKDM2
+                ./tmp/Add-region-to-PAC.sh BNKDM
               waitAfterCompletion: '0'
         050-StartBNKDM:
           files:
@@ -585,106 +570,330 @@ Resources:
               authentication: S3AccessCreds
           commands:
             a-StartBNKDM:
-              test: !Sub >-
-                if [ "${ESInstanceName}" == "ESServer1" ];then exit 0; else exit 1 ;fi
               command:
-                ./tmp/Start-Region.sh BNKDM 64 c
-              waitAfterCompletion: '0'
-            b-StartBNKDM2:
-              test: !Sub >-
-                if [ "${ESInstanceName}" == "ESServer2" ];then exit 0; else exit 1 ;fi
-              command:
-                ./tmp/Start-Region.sh BNKDM2 64 w 180
+                ./tmp/Start-Region.sh BNKDM 64 w 180
               waitAfterCompletion: '0'
     Properties:
-      AvailabilityZone: !Select
-        - 0
-        - !Ref AvailabilityZones
-      Volumes:
-        - VolumeId: !Ref ESPrimaryDataVolume
-          Device: xvdb
-      SubnetId: !Ref SubnetID
-      SecurityGroupIds:
-        - !Ref DomainMemberSGID
-        - !Ref ESClientAccessSGID
-      IamInstanceProfile: !Ref ESInstanceRoleProfile
-      KeyName: !Ref KeyPairName
-      InstanceType: !Ref ESInstanceType
-      ImageId: !FindInMap
-        - AWSAMIRegionMap
-        - !Ref 'AWS::Region'
-        - MFES40AMI
-      Tags:
-        - Key: Name
-          Value: !Sub '${AWS::StackName}-${ESInstanceName}'
-      UserData: !Base64
-        'Fn::Join':
-          - ''
-          - - |
-              #!/bin/bash -xe
-            - | 
-              exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
-            - >
-              rpm -Uvh
-              https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
-            - |
-              yum -y install python-pip
-            - >
-              /bin/easy_install --script-dir /opt/aws/bin 
-              https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz
-            - >
-              cp -f `pip show aws-cfn-bootstrap 2>/dev/null|grep -E "^Location"|awk
-              -F: '{print $2}'`/init/redhat/cfn-hup /etc/init.d/
-            - |
-              chmod 755 /etc/init.d/cfn-hup
-              chkconfig --add cfn-hup
-            - >-
-              /opt/aws/bin/cfn-init -v --stack 
-            - !Ref 'AWS::StackName' 
-            - ' --resource ESInstance
-              --configsets config 
-              --region '
-            - !Ref 'AWS::Region'
-            - |+
-            
-            - '/opt/aws/bin/cfn-signal -e $? --stack '
-            - !Ref 'AWS::StackName'
-            - ' --resource ESInstance --region '
-            - !Ref 'AWS::Region'
-            - |+
-  ESInstanceRecoveryAlarm:
-    Type: 'AWS::CloudWatch::Alarm'
+      LaunchTemplateName: "ESInstanceLaunchTemplate"
+      LaunchTemplateData:
+        BlockDeviceMappings:
+          - DeviceName: xvdb
+            Ebs:
+              VolumeType: gp2
+              VolumeSize: !GetAtt ESPrimaryDataVolumeStorageSize.Value
+        SecurityGroupIds:
+          - !Ref DomainMemberSGID
+          - !Ref ESClientAccessSGID
+        IamInstanceProfile:
+          Arn: !GetAtt ESInstanceRoleProfile.Arn
+        KeyName: !Ref KeyPairName
+        InstanceType: !Ref ESInstanceType
+        ImageId: !FindInMap
+          - AWSAMIRegionMap
+          - !Ref 'AWS::Region'
+          - MFES40AMI
+        TagSpecifications:
+          - ResourceType: instance
+            Tags:
+              - Key: Name
+                Value: !Sub '${AWS::StackName}-ESSERVER-WARM'
+          - ResourceType: volume
+            Tags:
+              - Key: Name
+                Value: !Sub '${AWS::StackName}-ESSERVER-WARM Data Volume'
+        UserData:
+          Fn::Base64: !Sub |
+            #!/bin/bash -xe
+            exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
+
+            while ! rpm -Uvh https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+            do
+              sleep 1
+            done
+
+            while ! yum -y install python-pip
+            do
+              sleep 1
+            done
+
+            while ! /bin/easy_install --script-dir /opt/aws/bin https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz
+            do
+              sleep 1
+            done
+
+            while ! yum install -y https://s3.${AWS::Region}.amazonaws.com/amazon-ssm-${AWS::Region}/latest/linux_amd64/amazon-ssm-agent.rpm
+            do
+              sleep 1
+            done
+
+            cp -f `pip show aws-cfn-bootstrap 2>/dev/null|grep -E "^Location"|awk -F: '{print $2}'`/init/redhat/cfn-hup /etc/init.d/
+
+            chmod 755 /etc/init.d/cfn-hup
+            chkconfig --add cfn-hup
+
+            /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource ESInstanceLaunchTemplate --configsets config --region ${AWS::Region}
+            /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource ESInstanceASG --region ${AWS::Region}
+  ESInstanceColdStack:
+    Type: 'AWS::CloudFormation::Stack'
     Properties:
-      AlarmDescription: !Sub |
-        "${AWS::StackName} Stack instance auto-recovery alarm/trigger."
-      Namespace: AWS/EC2
-      MetricName: StatusCheckFailed_System
-      Statistic: Minimum
-      Period: 60
-      EvaluationPeriods: 5
-      ComparisonOperator: GreaterThanThreshold
-      Threshold: 0
-      AlarmActions:
-        - !Sub 'arn:aws:automate:${AWS::Region}:ec2:recover'
-        - !If
-          - HaveEMailNotificationTopic
-          - !Ref EMailNotificationTopic
-          - !Ref 'AWS::NoValue'
-      Dimensions:
-        - Name: InstanceId
-          Value: !Ref ESInstance
+      TemplateURL: !Sub
+        - 'https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}templates/mf-es-redhat-cold-template.yaml'
+        - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
+          S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
+      Parameters:
+        AvailabilityZones: !Join
+          - ','
+          - !Ref AvailabilityZones
+        DomainAdminPassword: !Ref DomainAdminPassword
+        DomainDNSName: !Ref DomainDNSName
+        DomainMemberSGID: !Ref DomainMemberSGID
+        EMailNotificationTopic: !Ref EMailNotificationTopic
+        ESClientAccessSGID: !Ref ESClientAccessSGID
+        ESInstanceType: !Ref ESInstanceType
+        ESLicenseFilename: !Ref ESLicenseFilename
+        ESS3BucketName: !Ref ESS3BucketName
+        AdditionalESStorageinGiB: !Ref AdditionalESStorageinGiB
+        KeyPairName: !Ref KeyPairName
+        LicenseAgreement: !Ref LicenseAgreement
+        PACDBMasterUserPassword: !Ref PACDBMasterUserPassword
+        QSS3BucketName: !Ref QSS3BucketName
+        QSS3BucketRegion: !Ref QSS3BucketRegion
+        QSS3KeyPrefix: !Ref QSS3KeyPrefix
+        RegionsPerInstance: !Ref RegionsPerInstance
+        SubnetID: !Ref PrivateSubnet1AID
+  AddColdInstanceToASGLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: addColdInstanceToASG
+      Environment:
+        Variables:
+          instanceId: !GetAtt ESInstanceColdStack.Outputs.ESInstanceID
+          autoscalingGroup: !Ref ESInstanceASG
+      Code:
+        ZipFile: |
+          import os, boto3, json
+          import cfnresponse
+
+          def handler(event, context):
+              print('EVENT:[{}]'.format(event))
+              print(os.environ['instanceId'])
+              print(os.environ['autoscalingGroup'])
+              response = None
+              if event['RequestType'] == 'Create':
+                  client = boto3.client('autoscaling')
+                  response = client.attach_instances(InstanceIds=[
+                          os.environ['instanceId'],
+                      ],
+                      AutoScalingGroupName=os.environ['autoscalingGroup']
+                  )
+                  print(response)
+
+                  response = client.update_auto_scaling_group(
+                      AutoScalingGroupName=os.environ['autoscalingGroup'],
+                      MinSize=2
+                  )
+                  print(response)
+              elif event['RequestType'] == 'Delete':
+                  string = """curl -H 'Content-Type: ''' -X PUT -d '{{
+                      "Status": "SUCCESS", "PhysicalResourceId": "{}", "StackId": "{}",
+                      "RequestId": "{}", "LogicalResourceId": "{}"
+                  }}' '{}'"""
+                  print(string.format(
+                      event['PhysicalResourceId'], event['StackId'], event['RequestId'],
+                      event['LogicalResourceId'], event['ResponseURL'])
+                  )
+              responseData = {}
+              responseData['Data'] = response
+              cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)
+
+      Handler: index.handler
+      Role: !GetAtt LambdaExecutionAutoScalingRole.Arn
+      Runtime: python3.7
+      Timeout: 60
+  InvokeLambdaResource:
+    Type: AWS::CloudFormation::CustomResource
+    Version: "1.0"
+    Properties:
+      ServiceToken: !GetAtt AddColdInstanceToASGLambdaFunction.Arn
+  LambdaExecutionAutoScalingRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: 'autoscaling'
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: 'autoscaling:*'
+                Resource: '*'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
+  ESInstanceASG:
+    Type: 'AWS::AutoScaling::AutoScalingGroup'
+    Properties:
+      AvailabilityZones: !Ref AvailabilityZones
+      VPCZoneIdentifier:
+        - !Ref PrivateSubnet1AID
+        - !Ref PrivateSubnet2AID
+      LaunchTemplate:
+        LaunchTemplateId: !Ref ESInstanceLaunchTemplate
+        Version: !GetAtt ESInstanceLaunchTemplate.LatestVersionNumber
+      MetricsCollection:
+        - Granularity: '1Minute'
+      MinSize: '0'
+      DesiredCapacity: '0'
+      MaxSize: !Sub ${MaxNumberOfESInstances}
+      TargetGroupARNs:
+        - !Ref TargetGroup
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        MinInstancesInService: 1
+        MaxBatchSize: 1
+        PauseTime: PT25M
+        WaitOnResourceSignals: true
+  TransactionsPerHourScalingPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AutoScalingGroupName: !Ref ESInstanceASG
+      EstimatedInstanceWarmup: 1800  # 30 minutes
+      PolicyType: TargetTrackingScaling
+      TargetTrackingConfiguration:
+        CustomizedMetricSpecification:
+          MetricName: avg-tasks-per-second
+          Namespace: !Ref MetricsNamespace
+          Statistic: Average
+        TargetValue: 1
+  # Lifecycle Stuff ###################################################
+  TerminationHook:
+    Type: AWS::AutoScaling::LifecycleHook
+    Properties:
+      AutoScalingGroupName: !Ref ESInstanceASG
+      DefaultResult: CONTINUE
+      HeartbeatTimeout: 900
+      LifecycleTransition: autoscaling:EC2_INSTANCE_TERMINATING
+  TerminationDocument:
+    Type: AWS::SSM::Document
+    Properties:
+      DocumentType: Automation
+      Content:
+        description: 'Run command before terminating instance'
+        schemaVersion: '0.3'
+        assumeRole: !GetAtt SSMDocumentRole.Arn
+        parameters:
+          instanceId:
+            type: String
+        mainSteps:
+          - name: RunCommand
+            action: aws:runCommand
+            inputs:
+              DocumentName: AWS-RunShellScript
+              InstanceIds:
+                - '{{ instanceId }}'
+              Parameters:
+                commands: |
+                  source /opt/microfocus/EnterpriseDeveloper/bin/cobsetenv
+                  casstop -lBNKDM -w60
+                executionTimeout: '900'
+          - name: TerminateInstance
+            action: aws:executeAwsApi
+            inputs:
+              Api: CompleteLifecycleAction
+              AutoScalingGroupName: !Ref ESInstanceASG
+              InstanceId: '{{ instanceId }}'
+              LifecycleActionResult: CONTINUE
+              LifecycleHookName: !Ref TerminationHook
+              Service: autoscaling
+  TerminationRule:
+    Type: AWS::Events::Rule
+    Properties:
+      EventPattern:
+        source:
+          - aws.autoscaling
+        detail-type:
+          - EC2 Instance-terminate Lifecycle Action
+        detail:
+          AutoScalingGroupName:
+            - !Ref ESInstanceASG
+      Targets:
+        - Id: my-termination-document
+          Arn: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:automation-definition/${TerminationDocument}:$DEFAULT'
+          RoleArn: !GetAtt AutomationRuleRole.Arn
+          InputTransformer:
+            InputPathsMap:
+              instanceId: '$.detail.EC2InstanceId'
+            InputTemplate: '{"instanceId":[<instanceId>]}'
+  AutomationRuleRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: start-automation-for-terminate
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ssm:StartAutomationExecution
+                Resource: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:automation-definition/${TerminationDocument}:$DEFAULT'
+  SSMDocumentRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ssm.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: run-command-and-complete-lifecycle
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - autoscaling:CompleteLifecycleAction
+                Resource: !Sub 'arn:aws:autoscaling:${AWS::Region}:${AWS::AccountId}:autoScalingGroup:*:autoScalingGroupName/${ESInstanceASG}'
+              - Effect: Allow
+                Action:
+                  - ssm:DescribeInstanceInformation
+                  - ssm:ListCommands
+                  - ssm:ListCommandInvocations
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - ssm:SendCommand
+                Resource: 'arn:aws:ssm:*::document/AWS-RunShellScript'
+              - Effect: Allow
+                Action:
+                  - ssm:SendCommand
+                Resource: !Sub 'arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/*'
 Outputs:
-  ESInstanceID:
-    Description: The Enterprise Server EC2 Instance ID
-    Value: !Ref ESInstance
-  ESInstanceAZ:
+  ESInstanceLaunchTemplateID:
     Description: >-
-      The Availability Zone where the deployed Enterprise Server instance is
-      launched.
-    Value: !GetAtt ESInstance.AvailabilityZone
-  ESInstancePrivateDnsName:
-    Description: The private DNS name of the deployed Enterprise Server instance
-    Value: !GetAtt ESInstance.PrivateDnsName
-  ESInstancePrivateIp:
-    Description: The private IP address of the deployed Enterprise Server instance
-    Value: !GetAtt ESInstance.PrivateIp
+      The launch template ID which deploys an Enterprise Server instance.
+    Value: !Ref ESInstanceLaunchTemplate
+  ESInstanceLaunchTemplateVersion:
+    Description: >-
+      The latest version of the launch template which deploys an Enterprise Server instance.
+    Value: !GetAtt ESInstanceLaunchTemplate.LatestVersionNumber
+  AutoScalingGroup:
+    Description: >-
+      The auto scaling group which uses the ESInstanceLaunchTemplate.
+    Value: !Ref ESInstanceASG

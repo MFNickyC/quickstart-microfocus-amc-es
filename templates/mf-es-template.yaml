@@ -33,7 +33,9 @@ Metadata:
           default: Network Configuration
         Parameters:
           - AvailabilityZones
-          - SubnetID
+          - PrivateSubnet1AID
+          - PrivateSubnet2AID
+          - TargetGroup
       - Label:
           default: Microsoft Active Directory Configuration
         Parameters:
@@ -45,12 +47,13 @@ Metadata:
           default: Enterprise Server Configuration
         Parameters:
           - ESInstanceType
+          - MaxNumberOfESInstances
+          - MetricsNamespace
           - KeyPairName
           - RegionsPerInstance
           - AdditionalESStorageinGiB
           - MFDSServiceAccountName
           - MFDSServiceAccountPassword
-          - ESInstanceName
           - ESClientAccessSGID
           - ESS3BucketName
           - EMailNotificationTopic
@@ -84,8 +87,6 @@ Metadata:
         default: Enterprise Server Application (Client) Access Security Group ID
       ESCWLogGroup:
         default: Amazon CloudWatch Log Group
-      ESInstanceName:
-        default: Name of the Enterprise Server EC2 instance
       ESInstanceType:
         default: Enterprise Server instance type
       ESLicenseFilename:
@@ -96,14 +97,20 @@ Metadata:
         default: Key pair name
       LicenseAgreement:
         default: License agreement
+      MaxNumberOfESInstances:
+        default: Maximum number of Enterprise Server instances to run simultaneously
+      MetricsNamespace:
+        default: Namespace for the Enterprise Server custom metrics
       MFDSServiceAccountName:
         default: Micro Focus Directory Server service domain account name
       MFDSServiceAccountPassword:
         default: Micro Focus Directory Server service account password
       PACDBMasterUserPassword:
         default: Database Master password
-      SubnetID:
-        default: Subnet ID
+      PrivateSubnet1AID:
+        default: Private Subnet 1A ID
+      PrivateSubnet2AID:
+        default: Private Subnet 2A ID
       QSS3BucketName:
         default: Quick Start S3 bucket name
       QSS3BucketRegion:
@@ -112,6 +119,8 @@ Metadata:
         default: Quick Start S3 key prefix
       RegionsPerInstance:
         default: Number of Enterprise Server regions per instance
+      TargetGroup:
+        default: The target group for the load balancer
 Parameters:
   AdditionalESStorageinGiB:
     Type: Number
@@ -169,9 +178,6 @@ Parameters:
   ESCWLogGroup:
     Type: String
     Description: The logical ID of the Amazon CloudWatch Logs Log Group
-  ESInstanceName:
-    Type: String
-    Description: The name to assign to the Enterprise Server instance Windows Hostname
   ESInstanceType:
     AllowedValues:
       - c5.large
@@ -210,6 +216,23 @@ Parameters:
       - I agree
       - '-'
     ConstraintDescription: must answer 'I agree'.
+  MaxNumberOfESInstances:
+    Default: 3
+    MinValue: 3
+    MaxValue: 10
+    Description: >-
+      The maximum capacity (3-10) for the Enterprise Server Auto Scaling group.
+    Type: Number
+  MetricsNamespace:
+    Type: String
+    AllowedPattern: '[a-zA-Z0-9\.\-_\/#:]*'
+    Default: Custom
+    Description: >-
+      The namespace must be 1-256 characters. Possible characters are: alphanumeric
+      characters (0-9A-Za-z), period (.), hyphen (-), underscore (_),
+      forward slash (/), hash (#), and colon (:).
+    MaxLength: '256'
+    MinLength: '1'
   MFDSServiceAccountName:
     Type: String
     AllowedPattern: '[a-zA-Z0-9]*'
@@ -242,9 +265,19 @@ Parameters:
       "/", """, or "@".
     Type: String
     NoEcho: true
-  SubnetID:
-    Description: 'The ID of a private subnet in an Availability Zone (e.g., subnet-a0246dcd).'
+  PrivateSubnet1AID:
+    Description: >-
+      The ID of private subnet 1A in Availability Zone 1 (e.g.,
+      subnet-a0246dcd).
     Type: 'AWS::EC2::Subnet::Id'
+  PrivateSubnet2AID:
+    Description: >-
+      The ID of private subnet 2A in Availability Zone 2 (e.g.,
+      subnet-01a43dc1ca1fa7f9b).
+    Type: 'AWS::EC2::Subnet::Id'
+  TargetGroup:
+    Description: 'The target group for the PAC load balancer.'
+    Type: String
   QSS3BucketName:
     AllowedPattern: '^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$'
     ConstraintDescription: >-
@@ -340,10 +373,6 @@ Conditions:
     - !Equals
       - !Ref ESLicenseFilename
       - ''
-  HaveEMailNotificationTopic: !Not
-    - !Equals
-      - !Ref EMailNotificationTopic
-      - ''
 Resources:
   ESInstanceRole:
     Type: 'AWS::IAM::Role'
@@ -359,6 +388,7 @@ Resources:
       Path: /
       ManagedPolicyArns:
         - 'arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM'
+        - 'arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore'
         - 'arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy'
       Policies:
         - PolicyDocument:
@@ -431,23 +461,8 @@ Resources:
       RegionStorageOverheadInGiB: 50
       AdditionalESStorageinGiB: !Ref AdditionalESStorageinGiB
       Value: 0
-  ESPrimaryDataVolume:
-    Type: 'AWS::EC2::Volume'
-    Properties:
-      VolumeType: gp2
-      Size: !GetAtt ESPrimaryDataVolumeStorageSize.Value
-      AvailabilityZone: !Select
-        - 0
-        - !Ref AvailabilityZones
-      Tags:
-        - Key: Name
-          Value: !Sub '${AWS::StackName}-${ESInstanceName} Data Volume'
-  ESInstance:
-    Type: 'AWS::EC2::Instance'
-    CreationPolicy:
-      ResourceSignal:
-        Count: 1
-        Timeout: PT25M
+  ESInstanceLaunchTemplate:
+    Type: 'AWS::EC2::LaunchTemplate'
     Metadata:
       'AWS::CloudFormation::Authentication':
         S3AccessCreds:
@@ -467,7 +482,7 @@ Resources:
               - HaveESlicenseFilename
               - 050-ApplyESLicenseFile
               - 000-NoOperation
-            - 060-RenameAndJoinDomain
+            - 060-JoinDomain
             - 070-Setup-PAC-Database-Envrionment
             - 080-InstallBankDemoPAC
             - 090-ChangeMFDSServiceStartName
@@ -672,8 +687,8 @@ Resources:
               content: !Sub |
                 [cfn-auto-reloader-hook]
                 triggers=post.update
-                path=Resources.ESInstance.Metadata.AWS::CloudFormation::Init
-                action=cfn-init.exe -v -c config -s ${AWS::StackId} --resource ESInstance --region ${AWS::Region}
+                path=Resources.ESInstanceLaunchTemplate.Metadata.AWS::CloudFormation::Init
+                action=cfn-init.exe -v -c config -s ${AWS::StackId} --resource ESInstanceLaunchTemplate --region ${AWS::Region}
             'c:\cfn\scripts\AddTo-SystemPath.ps1':
               source: !Sub
                 - >-
@@ -692,13 +707,6 @@ Resources:
               source: !Sub
                 - >-
                   https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}submodules/quickstart-microsoft-utilities/scripts/Join-Domain.ps1
-                - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
-                  S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
-              authentication: S3AccessCreds
-            'C:\cfn\scripts\Rename-Computer.ps1':
-              source: !Sub
-                - >-
-                  https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}submodules/quickstart-microsoft-utilities/scripts/Rename-Computer.ps1
                 - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
                   S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
               authentication: S3AccessCreds
@@ -729,7 +737,7 @@ Resources:
                 powershell.exe
                   -Command New-AWSQuickStartResourceSignal
                     -Stack ${AWS::StackName}
-                    -Resource ESInstance
+                    -Resource ESInstanceASG
                     -Region ${AWS::Region}
               waitAfterCompletion: '0'
         040-ConfigureEnterpriseServer:
@@ -819,16 +827,9 @@ Resources:
               command:
                 powershell.exe -File C:\cfn\scripts\MFDS-Listen-all.ps1
               waitAfterCompletion: '0'
-        060-RenameAndJoinDomain:
+        060-JoinDomain:
           commands:
-            a-rename-computer:
-              command: !Sub
-                powershell.exe
-                  -File C:\cfn\scripts\Rename-Computer.ps1
-                    -NewName ${ESInstanceName}
-                    -Restart
-              waitAfterCompletion: forever
-            b-join-domain-and-restart:
+            a-join-domain-and-restart:
               command: !Sub
                 powershell.exe
                   -File C:\cfn\scripts\Join-Domain.ps1
@@ -838,7 +839,7 @@ Resources:
               waitAfterCompletion: forever
             # Add 'Domain Users' to local RDP Group to they can RDP into this instance
             # Install A/D Management Tools
-            c-add-domain-users-rdp-users-group:
+            b-add-domain-users-rdp-users-group:
               command: !Sub
                 powershell
                   -Command
@@ -897,13 +898,6 @@ Resources:
               waitAfterCompletion: '0'
         080-InstallBankDemoPAC:
           files:
-            'C:\cfn\scripts\deploy.bat':
-              source: !Sub
-                - >-
-                  https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/deploy.bat
-                - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
-                  S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
-              authentication: S3AccessCreds
             'C:\cfn\scripts\configure-and-import-pac-region.ps1':
               source: !Sub
                 - >-
@@ -935,7 +929,7 @@ Resources:
                       -DsnType "System" `
                       -Platform "32-bit" `
                       -SetPropertyValue @("Server=ESPACDatabase", "UserName=esuser", "Database=postgres", "Password=${PACDBMasterUserPassword}")
-                  
+
                   Add-OdbcDsn `
                       -Name PG.REGION `
                       -DriverName "PostgreSQL ANSI" `
@@ -958,31 +952,13 @@ Resources:
                 powershell.exe
                   -File c:\cfn\scripts\CreateDSN_PAC.ps1
               waitAfterCompletion: '0'
-            b-configure-and-import-region1:
-              test: !Sub >-
-                if /I "${ESInstanceName}"=="ESSERVER1" (exit 0) else (exit 1)
+            b-configure-and-import-region:
               cwd: C:\Program Files (x86)\Micro Focus\Enterprise Server\bin
               command:
                 powershell.exe -File c:\cfn\scripts\configure-and-import-pac-region.ps1 -Regionname BNKDM
-              waitAfterCompletion: '0'
-            c-configure-and-import-region2:
-              test: !Sub >-
-                if /I "${ESInstanceName}"=="ESSERVER2" (exit 0) else (exit 1)
-              cwd: C:\Program Files (x86)\Micro Focus\Enterprise Server\bin
+            c-add-region-to-PAC:
               command:
-                powershell.exe -File c:\cfn\scripts\configure-and-import-pac-region.ps1 -Regionname BNKDM2
-            d-import-data-files:
-              cwd: C:\Program Files (x86)\Micro Focus\Enterprise Server\bin
-              test: !Sub >-
-                if /I "${ESInstanceName}"=="ESSERVER1" (exit 0) else (exit 1)
-              command:
-                start /wait c:\cfn\scripts\deploy.bat
-              waitAfterCompletion: '0'
-            e-add-region-to-PAC:
-              command: !Sub
-                powershell.exe
-                  -File c:\cfn\scripts\Add-region-to-PAC.ps1
-                  -ESInstanceName ${ESInstanceName}
+                powershell.exe -File c:\cfn\scripts\Add-region-to-PAC.ps1
               waitAfterCompletion: '0'
         090-ChangeMFDSServiceStartName:
           files:
@@ -1054,34 +1030,13 @@ Resources:
                     -Status Grant
               waitAfterCompletion: '0'
         100-Start-BNKDM:
-          files:
-            'c:\cfn\scripts\StartESRegion-cold.ps1':
-              source: !Sub
-                - >-
-                  https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/StartESRegion-cold.ps1
-                - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
-                  S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
-              authentication: S3AccessCreds
           commands:
             a-start-BNKDM-region:
-              test: !Sub >-
-                if /I "${ESInstanceName}"=="ESSERVER1" (exit 0) else (exit 1)
               command: !Sub
                 powershell.exe
                   -File c:\cfn\scripts\Schedule-AD-PowershellTask.ps1
                     -TaskName startBNKDM
-                    -TaskArguments "-File c:\cfn\scripts\StartESRegion-cold.ps1 -RegionName BNKDM"
-                    -DomainUserName "${DomainNetBIOSName}\${MFDSServiceAccountName}"
-                    -DomainUserPassword "${MFDSServiceAccountPassword}"
-              waitAfterCompletion: '0'
-            b-start-BNKDM2-region:
-              test: !Sub >-
-                if /I "${ESInstanceName}"=="ESSERVER2" (exit 0) else (exit 1)
-              command: !Sub
-                powershell.exe
-                  -File c:\cfn\scripts\Schedule-AD-PowershellTask.ps1
-                    -TaskName startBNKDM
-                    -TaskArguments "-File c:\cfn\scripts\StartESRegion.ps1 -RegionName BNKDM2 -Delay yes"
+                    -TaskArguments "-File c:\cfn\scripts\StartESRegion.ps1 -RegionName BNKDM -Delay yes"
                     -DomainUserName "${DomainNetBIOSName}\${MFDSServiceAccountName}"
                     -DomainUserPassword "${MFDSServiceAccountPassword}"
               waitAfterCompletion: '0'
@@ -1093,81 +1048,319 @@ Resources:
                   -Command Write-AWSQuickStartStatus
               waitAfterCompletion: '0'
     Properties:
-      AvailabilityZone: !Select
-        - 0
-        - !Ref AvailabilityZones
-      Volumes:
-        - VolumeId: !Ref ESPrimaryDataVolume
-          Device: xvdb
-      SubnetId: !Ref SubnetID
-      SecurityGroupIds:
-        - !Ref DomainMemberSGID
-        - !Ref ESClientAccessSGID
-      IamInstanceProfile: !Ref ESInstanceRoleProfile
-      KeyName: !Ref KeyPairName
-      InstanceType: !Ref ESInstanceType
-      ImageId: !FindInMap
-        - AWSAMIRegionMap
-        - !Ref 'AWS::Region'
-        - MFES40AMI
-      Tags:
-        - Key: Name
-          Value: !Sub '${AWS::StackName}-${ESInstanceName}'
-      UserData: !Base64
-        'Fn::Sub':
-          - |
-            <script>
-              rem Uninstall Amazon SSM Agent and AWS CLI to allow updating
-              wmic product where "description='Amazon SSM Agent' " uninstall
-              wmic product where "description='aws-cfn-bootstrap' " uninstall
+      LaunchTemplateName: "ESInstanceLaunchTemplate"
+      LaunchTemplateData:
+        BlockDeviceMappings:
+          - DeviceName: xvdb
+            Ebs:
+              VolumeType: gp2
+              VolumeSize: !GetAtt ESPrimaryDataVolumeStorageSize.Value
+        SecurityGroupIds:
+          - !Ref DomainMemberSGID
+          - !Ref ESClientAccessSGID
+        IamInstanceProfile:
+          Arn: !GetAtt ESInstanceRoleProfile.Arn
+        KeyName: !Ref KeyPairName
+        InstanceType: !Ref ESInstanceType
+        ImageId: !FindInMap
+          - AWSAMIRegionMap
+          - !Ref 'AWS::Region'
+          - MFES40AMI
+        TagSpecifications:
+          - ResourceType: instance
+            Tags:
+              - Key: Name
+                Value: !Sub '${AWS::StackName}-ESSERVER-WARM'
+          - ResourceType: volume
+            Tags:
+              - Key: Name
+                Value: !Sub '${AWS::StackName}-ESSERVER-WARM Data Volume'
+        UserData: !Base64
+          'Fn::Sub':
+            - |
+              <script>
+                rem Uninstall Amazon SSM Agent and AWS CLI to allow updating
+                wmic product where "description='Amazon SSM Agent' " uninstall
+                wmic product where "description='aws-cfn-bootstrap' " uninstall
 
-              rem Install latest AWS CloudFormation Helper Scripts
-              start /wait c:\Windows\system32\msiexec /passive /qn /i https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-win64-latest.msi
+                rem Install latest AWS CloudFormation Helper Scripts
+                start /wait c:\Windows\system32\msiexec /passive /qn /i https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-win64-latest.msi
 
-              rem Download and run the latest Amazon SSM Agent setup
-              powershell.exe -Command "iwr https://${QSS3Region}.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/windows_amd64/AmazonSSMAgentSetup.exe -UseBasicParsing -OutFile C:\AmazonSSMAgentSetup.exe"
-              start /wait C:\AmazonSSMAgentSetup.exe /install /quiet
+                rem Download and run the latest Amazon SSM Agent setup
+                powershell.exe -Command "iwr https://${QSS3Region}.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/windows_amd64/AmazonSSMAgentSetup.exe -UseBasicParsing -OutFile C:\AmazonSSMAgentSetup.exe"
+                start /wait C:\AmazonSSMAgentSetup.exe /install /quiet
 
-              rem Run cfn-init helper to process AWS::CloudFormation::Init directives
-              cfn-init.exe -v -c config -s ${AWS::StackName} --resource ESInstance --region ${AWS::Region}
-            </script>
-          - QSS3Region: !If
-              - GovCloudCondition
-              - s3-us-gov-west-1
-              - s3
-  ESInstanceRecoveryAlarm:
-    Type: 'AWS::CloudWatch::Alarm'
+                rem Run cfn-init helper to process AWS::CloudFormation::Init directives
+                cfn-init.exe -v -c config -s ${AWS::StackName} --resource ESInstanceLaunchTemplate --region ${AWS::Region}
+              </script>
+            - QSS3Region: !If
+                - GovCloudCondition
+                - s3-us-gov-west-1
+                - s3
+  ESInstanceColdStack:
+    Type: 'AWS::CloudFormation::Stack'
     Properties:
-      AlarmDescription: !Sub |
-        "${AWS::StackName} Stack instance auto-recovery alarm/trigger."
-      Namespace: AWS/EC2
-      MetricName: StatusCheckFailed_System
-      Statistic: Minimum
-      Period: 60
-      EvaluationPeriods: 5
-      ComparisonOperator: GreaterThanThreshold
-      Threshold: 0
-      AlarmActions:
-        - !Sub 'arn:aws:automate:${AWS::Region}:ec2:recover'
-        - !If
-          - HaveEMailNotificationTopic
-          - !Ref EMailNotificationTopic
-          - !Ref 'AWS::NoValue'
-      Dimensions:
-        - Name: InstanceId
-          Value: !Ref ESInstance
+      TemplateURL: !Sub
+        - 'https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}templates/mf-es-cold-template.yaml'
+        - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
+          S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
+      Parameters:
+        AvailabilityZones: !Join
+          - ','
+          - !Ref AvailabilityZones
+        DomainAdminPassword: !Ref DomainAdminPassword
+        DomainDNSName: !Ref DomainDNSName
+        DomainMemberSGID: !Ref DomainMemberSGID
+        DomainNetBIOSName: !Ref DomainNetBIOSName
+        EMailNotificationTopic: !Ref EMailNotificationTopic
+        ESClientAccessSGID: !Ref ESClientAccessSGID
+        ESCWLogGroup: !Ref ESCWLogGroup
+        ESInstanceType: !Ref ESInstanceType
+        ESLicenseFilename: !Ref ESLicenseFilename
+        ESS3BucketName: !Ref ESS3BucketName
+        AdditionalESStorageinGiB: !Ref AdditionalESStorageinGiB
+        KeyPairName: !Ref KeyPairName
+        LicenseAgreement: !Ref LicenseAgreement
+        MFDSServiceAccountName: !Ref MFDSServiceAccountName
+        MFDSServiceAccountPassword: !Ref MFDSServiceAccountPassword
+        PACDBMasterUserPassword: !Ref PACDBMasterUserPassword
+        QSS3BucketName: !Ref QSS3BucketName
+        QSS3BucketRegion: !Ref QSS3BucketRegion
+        QSS3KeyPrefix: !Ref QSS3KeyPrefix
+        RegionsPerInstance: !Ref RegionsPerInstance
+        SubnetID: !Ref PrivateSubnet1AID
+  AddColdInstanceToASGLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: addColdInstanceToASG
+      Environment:
+        Variables:
+          instanceId: !GetAtt ESInstanceColdStack.Outputs.ESInstanceID
+          autoscalingGroup: !Ref ESInstanceASG
+      Code:
+        ZipFile: |
+          import os, boto3, json
+          import cfnresponse
+
+          def handler(event, context):
+              print('EVENT:[{}]'.format(event))
+              print(os.environ['instanceId'])
+              print(os.environ['autoscalingGroup'])
+              response = None
+              if event['RequestType'] == 'Create':
+                  client = boto3.client('autoscaling')
+                  response = client.attach_instances(InstanceIds=[
+                          os.environ['instanceId'],
+                      ],
+                      AutoScalingGroupName=os.environ['autoscalingGroup']
+                  )
+                  print(response)
+
+                  response = client.update_auto_scaling_group(
+                      AutoScalingGroupName=os.environ['autoscalingGroup'],
+                      MinSize=2
+                  )
+                  print(response)
+              elif event['RequestType'] == 'Delete':
+                  string = """curl -H 'Content-Type: ''' -X PUT -d '{{
+                      "Status": "SUCCESS", "PhysicalResourceId": "{}", "StackId": "{}",
+                      "RequestId": "{}", "LogicalResourceId": "{}"
+                  }}' '{}'"""
+                  print(string.format(
+                      event['PhysicalResourceId'], event['StackId'], event['RequestId'],
+                      event['LogicalResourceId'], event['ResponseURL'])
+                  )
+              responseData = {}
+              responseData['Data'] = response
+              cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)
+
+      Handler: index.handler
+      Role: !GetAtt LambdaExecutionAutoScalingRole.Arn
+      Runtime: python3.7
+      Timeout: 60
+  InvokeLambdaResource:
+    Type: AWS::CloudFormation::CustomResource
+    Version: "1.0"
+    Properties:
+      ServiceToken: !GetAtt AddColdInstanceToASGLambdaFunction.Arn
+  LambdaExecutionAutoScalingRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: 'autoscaling'
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: 'autoscaling:*'
+                Resource: '*'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
+  ESInstanceASG:
+    Type: 'AWS::AutoScaling::AutoScalingGroup'
+    Properties:
+      AvailabilityZones: !Ref AvailabilityZones
+      VPCZoneIdentifier:
+        - !Ref PrivateSubnet1AID
+        - !Ref PrivateSubnet2AID
+      LaunchTemplate:
+        LaunchTemplateId: !Ref ESInstanceLaunchTemplate
+        Version: !GetAtt ESInstanceLaunchTemplate.LatestVersionNumber
+      MetricsCollection:
+        - Granularity: '1Minute'
+      MinSize: '0'
+      DesiredCapacity: '0'
+      MaxSize: !Sub ${MaxNumberOfESInstances}
+      TargetGroupARNs:
+        - !Ref TargetGroup
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        MinInstancesInService: 1
+        MaxBatchSize: 1
+        PauseTime: PT25M
+        WaitOnResourceSignals: true
+  TransactionsPerHourScalingPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AutoScalingGroupName: !Ref ESInstanceASG
+      EstimatedInstanceWarmup: 1800  # 30 minutes
+      PolicyType: TargetTrackingScaling
+      TargetTrackingConfiguration:
+        CustomizedMetricSpecification:
+          MetricName: avg-tasks-per-second
+          Namespace: !Ref MetricsNamespace
+          Statistic: Average
+        TargetValue: 1
+  # Lifecycle Stuff ###################################################
+  TerminationHook:
+    Type: AWS::AutoScaling::LifecycleHook
+    Properties:
+      AutoScalingGroupName: !Ref ESInstanceASG
+      DefaultResult: CONTINUE
+      HeartbeatTimeout: 900
+      LifecycleTransition: autoscaling:EC2_INSTANCE_TERMINATING
+  TerminationDocument:
+    Type: AWS::SSM::Document
+    Properties:
+      DocumentType: Automation
+      Content:
+        description: 'Run command before terminating instance'
+        schemaVersion: '0.3'
+        assumeRole: !GetAtt SSMDocumentRole.Arn
+        parameters:
+          instanceId:
+            type: String
+        mainSteps:
+          - name: RunCommand
+            action: aws:runCommand
+            inputs:
+              DocumentName: AWS-RunPowerShellScript
+              InstanceIds:
+                - '{{ instanceId }}'
+              Parameters:
+                commands:
+                  - "& 'C:\\Program Files (x86)\\Micro Focus\\Enterprise Server\\bin\\casstop.exe' -lBNKDM -w60"
+                executionTimeout: '900'
+          - name: TerminateInstance
+            action: aws:executeAwsApi
+            inputs:
+              Api: CompleteLifecycleAction
+              AutoScalingGroupName: !Ref ESInstanceASG
+              InstanceId: '{{ instanceId }}'
+              LifecycleActionResult: CONTINUE
+              LifecycleHookName: !Ref TerminationHook
+              Service: autoscaling
+  TerminationRule:
+    Type: AWS::Events::Rule
+    Properties:
+      EventPattern:
+        source:
+          - aws.autoscaling
+        detail-type:
+          - EC2 Instance-terminate Lifecycle Action
+        detail:
+          AutoScalingGroupName:
+            - !Ref ESInstanceASG
+      Targets:
+        - Id: my-termination-document
+          Arn: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:automation-definition/${TerminationDocument}:$DEFAULT'
+          RoleArn: !GetAtt AutomationRuleRole.Arn
+          InputTransformer:
+            InputPathsMap:
+              instanceId: '$.detail.EC2InstanceId'
+            InputTemplate: '{"instanceId":[<instanceId>]}'
+  AutomationRuleRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: start-automation-for-terminate
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ssm:StartAutomationExecution
+                Resource: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:automation-definition/${TerminationDocument}:$DEFAULT'
+  SSMDocumentRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ssm.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: run-command-and-complete-lifecycle
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - autoscaling:CompleteLifecycleAction
+                Resource: !Sub 'arn:aws:autoscaling:${AWS::Region}:${AWS::AccountId}:autoScalingGroup:*:autoScalingGroupName/${ESInstanceASG}'
+              - Effect: Allow
+                Action:
+                  - ssm:DescribeInstanceInformation
+                  - ssm:ListCommands
+                  - ssm:ListCommandInvocations
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - ssm:SendCommand
+                Resource: 'arn:aws:ssm:*::document/AWS-RunPowerShellScript'
+              - Effect: Allow
+                Action:
+                  - ssm:SendCommand
+                Resource: !Sub 'arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/*'
 Outputs:
-  ESInstanceID:
-    Description: The Enterprise Server EC2 Instance ID
-    Value: !Ref ESInstance
-  ESInstanceAZ:
+  ESInstanceLaunchTemplateID:
     Description: >-
-      The Availability Zone where the deployed Enterprise Server instance is
-      launched.
-    Value: !GetAtt ESInstance.AvailabilityZone
-  ESInstancePrivateDnsName:
-    Description: The private DNS name of the deployed Enterprise Server instance
-    Value: !GetAtt ESInstance.PrivateDnsName
-  ESInstancePrivateIp:
-    Description: The private IP address of the deployed Enterprise Server instance
-    Value: !GetAtt ESInstance.PrivateIp
+      The launch template ID which deploys an Enterprise Server instance.
+    Value: !Ref ESInstanceLaunchTemplate
+  ESInstanceLaunchTemplateVersion:
+    Description: >-
+      The latest version of the launch template which deploys an Enterprise Server instance.
+    Value: !GetAtt ESInstanceLaunchTemplate.LatestVersionNumber
+  AutoScalingGroup:
+    Description: >-
+      The auto scaling group which uses the ESInstanceLaunchTemplate.
+    Value: !Ref ESInstanceASG

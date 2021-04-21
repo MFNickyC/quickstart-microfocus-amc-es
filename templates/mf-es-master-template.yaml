@@ -62,7 +62,9 @@ Metadata:
         Parameters:
           - OS
           - ESInstanceType
-          - NumberOfESInstance
+          - LoadRunnerInstanceType
+          - MaxNumberOfESInstances
+          - MetricsNamespace
           - KeyPairName
           - RegionsPerInstance
           - AdditionalESStorageinGiB
@@ -133,6 +135,12 @@ Metadata:
         default: Key pair name
       LicenseAgreement:
         default: License agreement
+      LoadRunnerInstanceType:
+        default: LoadRunner instance type
+      MaxNumberOfESInstances:
+        default: Maximum number of Enterprise Server instances to run simultaneously
+      MetricsNamespace:
+        default: Namespace for the Enterprise Server custom metrics
       MFDSServiceAccountName:
         default: Micro Focus Directory Server service domain account name
       MFDSServiceAccountPassword:
@@ -141,8 +149,6 @@ Metadata:
         default: Re-enter the Micro Focus Directory Server service account password
       NumberOfBastionHosts:
         default: Number of Bastion hosts
-      NumberOfESInstance:
-        default: Number of Enterprise Server instances
       NumberOfRDGWHosts:
         default: Number of RD Gateway hosts
       OperatorEmail:
@@ -371,13 +377,6 @@ Parameters:
     Description: The type of Enterprise Server instance.
     Default: c5.large
     Type: String
-  NumberOfESInstance:
-    AllowedValues:
-      - 1
-      - 2
-    Default: 1
-    Description: The number of Enterprise Server instances to start.
-    Type: Number
   ESLicenseFilename:
     Description: >-
       Place the license file obtained from Micro Focus in the S3 bucket folder:
@@ -414,6 +413,32 @@ Parameters:
       - I agree
       - '-'
     ConstraintDescription: Must answer 'I agree'.
+  LoadRunnerInstanceType:
+    AllowedValues:
+      - c5.large
+      - c5.xlarge
+      - c5.2xlarge
+      - c5.4xlarge
+    Description: The type of Load Runner instance.
+    Default: c5.large
+    Type: String
+  MaxNumberOfESInstances:
+    Default: 3
+    MinValue: 3
+    MaxValue: 10
+    Description: >-
+      The maximum capacity (3-10) for the Enterprise Server Auto Scaling group.
+    Type: Number
+  MetricsNamespace:
+    Type: String
+    AllowedPattern: '[a-zA-Z0-9\.\-_\/#:]*'
+    Default: Custom
+    Description: >-
+      The namespace must be 1-256 characters. Possible characters are: alphanumeric
+      characters (0-9A-Za-z), period (.), hyphen (-), underscore (_),
+      forward slash (/), hash (#), and colon (:).
+    MaxLength: '256'
+    MinLength: '1'
   MFDSServiceAccountName:
     Type: String
     AllowedPattern: '[a-zA-Z0-9]*'
@@ -948,12 +973,14 @@ Resources:
         ESDemoUserPasswordConfirm: !Ref ESDemoUserPasswordConfirm
         OS: !Ref OS
         ESInstanceType: !Ref ESInstanceType
-        NumberOfESInstance: !Ref NumberOfESInstance
+        MaxNumberOfESInstances: !Ref MaxNumberOfESInstances
         ESLicenseFilename: !Ref ESLicenseFilename
         ESResourceNamePrefix: !Ref ESResourceNamePrefix
         ESS3BucketName: !Ref ESS3BucketName
         KeyPairName: !Ref KeyPairName
         LicenseAgreement: !Ref LicenseAgreement
+        LoadRunnerInstanceType: !Ref LoadRunnerInstanceType
+        MetricsNamespace: !Ref MetricsNamespace
         MFDSServiceAccountName: !Ref MFDSServiceAccountName
         MFDSServiceAccountPassword: !Ref MFDSServiceAccountPassword
         MFDSServiceAccountPasswordConfirm: !Ref MFDSServiceAccountPasswordConfirm

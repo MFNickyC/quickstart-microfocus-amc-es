@@ -20,7 +20,7 @@ Description: >-
   template. License: Apache 2.0 (Please do not remove) Sept,05,2018. Micro Focus
   Enterprise Server is licensed separately, please review the terms and
   conditions here (https://www.microfocus.com/about/legal/) for further details.
-  (qs-1qeg3mku7)"
+  (qs-1p6hinfje)"
 Metadata:
   'AWS::CloudFormation::Interface':
     ParameterGroups:
@@ -44,9 +44,10 @@ Metadata:
       - Label:
           default: Enterprise Server Configuration
         Parameters:
-          - ESCWAInstanceType
+          - ESInstanceType
           - KeyPairName
-          - MetricsNamespace
+          - RegionsPerInstance
+          - AdditionalESStorageinGiB
           - MFDSServiceAccountName
           - MFDSServiceAccountPassword
           - ESClientAccessSGID
@@ -54,12 +55,18 @@ Metadata:
           - EMailNotificationTopic
           - ESCWLogGroup
       - Label:
+          default: PAC Configuration
+        Parameters:
+          - PACDBMasterUserPassword
+      - Label:
           default: AWS Quick Start Configuration
         Parameters:
           - QSS3BucketName
           - QSS3BucketRegion
           - QSS3KeyPrefix
     ParameterLabels:
+      AdditionalESStorageinGiB:
+        default: Additional Enterprise Server instance storage
       AvailabilityZones:
         default: Availability Zones
       DomainAdminPassword:
@@ -76,7 +83,7 @@ Metadata:
         default: Enterprise Server Application (Client) Access Security Group ID
       ESCWLogGroup:
         default: Amazon CloudWatch Log Group
-      ESCWAInstanceType:
+      ESInstanceType:
         default: Enterprise Server instance type
       ESLicenseFilename:
         default: Enterprise Server license filename
@@ -86,12 +93,12 @@ Metadata:
         default: Key pair name
       LicenseAgreement:
         default: License agreement
-      MetricsNamespace:
-        default: Namespace for the Enterprise Server custom metrics
       MFDSServiceAccountName:
         default: Micro Focus Directory Server service domain account name
       MFDSServiceAccountPassword:
         default: Micro Focus Directory Server service account password
+      PACDBMasterUserPassword:
+        default: Database Master password
       SubnetID:
         default: Subnet ID
       QSS3BucketName:
@@ -100,7 +107,17 @@ Metadata:
         default: Quick Start S3 bucket region
       QSS3KeyPrefix:
         default: Quick Start S3 key prefix
+      RegionsPerInstance:
+        default: Number of Enterprise Server regions per instance
 Parameters:
+  AdditionalESStorageinGiB:
+    Type: Number
+    Description: >-
+      Additional EBS storage capacity in gibibytes (GiBs) added to each
+      Enterprise Server instance. Enter 0-16384 GiB.
+    MinValue: 0
+    MaxValue: 16384
+    Default: 100
   AvailabilityZones:
     Description: >-
       List of Availability Zones to use for the subnets in the VPC. Only two
@@ -149,7 +166,7 @@ Parameters:
   ESCWLogGroup:
     Type: String
     Description: The logical ID of the Amazon CloudWatch Logs Log Group
-  ESCWAInstanceType:
+  ESInstanceType:
     AllowedValues:
       - c5.large
       - c5.xlarge
@@ -187,16 +204,6 @@ Parameters:
       - I agree
       - '-'
     ConstraintDescription: must answer 'I agree'.
-  MetricsNamespace:
-    Type: String
-    AllowedPattern: '[a-zA-Z0-9\.\-_\/#:]*'
-    Default: Custom
-    Description: >-
-      The namespace must be 1-256 characters. Possible characters are: alphanumeric
-      characters (0-9A-Za-z), period (.), hyphen (-), underscore (_),
-      forward slash (/), hash (#), and colon (:).
-    MaxLength: '256'
-    MinLength: '1'
   MFDSServiceAccountName:
     Type: String
     AllowedPattern: '[a-zA-Z0-9]*'
@@ -216,6 +223,18 @@ Parameters:
       containing letters, numbers, and symbols.
     MaxLength: '32'
     MinLength: '8'
+    NoEcho: true
+  PACDBMasterUserPassword:
+    AllowedPattern: >-
+      ^((?![\/"@])[^\x00-\x1F\x80-\x9F]){8,}$
+    ConstraintDescription: >-
+      Must be at least eight characters long, as in "mypassword". Can be any
+      printable ASCII character except "/", """, or "@".
+    Description: >-
+      The password for the DB master user. Must be at least eight characters
+      long, as in "mypassword". Can be any printable ASCII character except
+      "/", """, or "@".
+    Type: String
     NoEcho: true
   SubnetID:
     Description: 'The ID of a private subnet in an Availability Zone (e.g., subnet-a0246dcd).'
@@ -246,6 +265,15 @@ Parameters:
       include numbers, lowercase letters, uppercase letters, hyphens (-), and
       forward slash (/).
     Type: String
+  RegionsPerInstance:
+    ConstraintDescription: Must be between 1 and 10 regions per instance.
+    Description: >-
+      The number of regions per Enterprise Server instance. Must be between 1 and
+      10 regions per instance.
+    Default: 1
+    MaxValue: 10
+    MinValue: 1
+    Type: Number
 Rules:
   KeyPairsNotEmpty:
     Assertions:
@@ -311,7 +339,7 @@ Conditions:
       - !Ref EMailNotificationTopic
       - ''
 Resources:
-  ESCWAInstanceRole:
+  ESInstanceRole:
     Type: 'AWS::IAM::Role'
     Properties:
       AssumeRolePolicyDocument:
@@ -325,6 +353,7 @@ Resources:
       Path: /
       ManagedPolicyArns:
         - 'arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM'
+        - 'arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore'
         - 'arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy'
       Policies:
         - PolicyDocument:
@@ -353,20 +382,13 @@ Resources:
                   - 'ds:Describe*'
                 Effect: Allow
                 Resource: '*'
-          PolicyName: ESCWAInstancePolicy
-        - PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Effect: Allow
-                Action: 'cloudwatch:PutMetricData'
-                Resource: '*'
-          PolicyName: 'cloudwatch-put-metric-data'
-  ESCWAInstanceRoleProfile:
+          PolicyName: ESInstancePolicy
+  ESInstanceRoleProfile:
     Type: 'AWS::IAM::InstanceProfile'
     Properties:
       Path: /
       Roles:
-        - !Ref ESCWAInstanceRole
+        - !Ref ESInstanceRole
   LambdaExecutionRole:
     Type: 'AWS::IAM::Role'
     Properties:
@@ -382,17 +404,50 @@ Resources:
       Path: /
       ManagedPolicyArns:
         - 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
-  ESCWAInstance:
+  CalcPrimaryDataVolumeStorageSizeFunction:
+    Type: 'AWS::Lambda::Function'
+    Properties:
+      Handler: index.handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          var response = require('cfn-response');
+          exports.handler = function(event, context) {
+            var props = event.ResourceProperties;
+            var result = (parseInt(props.RegionsPerInstance) * parseInt(props.RegionStorageOverheadInGiB)) + parseInt(props.AdditionalESStorageinGiB);
+            response.send(event, context, response.SUCCESS, {Value: result});
+          };
+      Runtime: nodejs12.x
+  ESPrimaryDataVolumeStorageSize:
+    Type: 'Custom::CalcPrimaryDataVolumeStorageSizeFunction'
+    Properties:
+      ServiceToken: !GetAtt CalcPrimaryDataVolumeStorageSizeFunction.Arn
+      RegionsPerInstance: !Ref RegionsPerInstance
+      RegionStorageOverheadInGiB: 50
+      AdditionalESStorageinGiB: !Ref AdditionalESStorageinGiB
+      Value: 0
+  ESPrimaryDataVolume:
+    Type: 'AWS::EC2::Volume'
+    Properties:
+      VolumeType: gp2
+      Size: !GetAtt ESPrimaryDataVolumeStorageSize.Value
+      AvailabilityZone: !Select
+        - 0
+        - !Ref AvailabilityZones
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-ESSERVER-COLD Data Volume'
+  ESInstance:
     Type: 'AWS::EC2::Instance'
     CreationPolicy:
       ResourceSignal:
         Count: 1
-        Timeout: PT30M
+        Timeout: PT25M
     Metadata:
       'AWS::CloudFormation::Authentication':
         S3AccessCreds:
           type: S3
-          roleName: !Ref ESCWAInstanceRole
+          roleName: !Ref ESInstanceRole
           buckets:
             - !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
             - !Ref ESS3BucketName
@@ -407,9 +462,12 @@ Resources:
               - HaveESlicenseFilename
               - 050-ApplyESLicenseFile
               - 000-NoOperation
-            - 060-RenameAndJoinDomain
-            - 070-Setup-ESCWA-Environment
-            - 080-Finalize
+            - 060-JoinDomain
+            - 070-Setup-PAC-Database-Envrionment
+            - 080-InstallBankDemoPAC
+            - 090-ChangeMFDSServiceStartName
+            - 100-Start-BNKDM
+            - 110-Finalize
         000-NoOperation:
           commands:
             a-no-operation:
@@ -588,13 +646,15 @@ Resources:
           files:
             'C:\cfn\scripts\Unzip-Archive.ps1':
               source: !Sub
-                - https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}submodules/quickstart-microsoft-utilities/scripts/Unzip-Archive.ps1
+                - >-
+                  https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}submodules/quickstart-microsoft-utilities/scripts/Unzip-Archive.ps1
                 - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
                   S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
               authentication: S3AccessCreds
             'C:\cfn\modules\AWSQuickStart.zip':
               source: !Sub
-                - https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}submodules/quickstart-microsoft-utilities/modules/AWSQuickStart.zip
+                - >-
+                  https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}submodules/quickstart-microsoft-utilities/modules/AWSQuickStart.zip
                 - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
                   S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
               authentication: S3AccessCreds
@@ -607,29 +667,26 @@ Resources:
               content: !Sub |
                 [cfn-auto-reloader-hook]
                 triggers=post.update
-                path=Resources.ESCWAInstance.Metadata.AWS::CloudFormation::Init
-                action=cfn-init.exe -v -c config -s ${AWS::StackId} --resource ESCWAInstance --region ${AWS::Region}
+                path=Resources.ESInstance.Metadata.AWS::CloudFormation::Init
+                action=cfn-init.exe -v -c config -s ${AWS::StackId} --resource ESInstance --region ${AWS::Region}
             'c:\cfn\scripts\AddTo-SystemPath.ps1':
               source: !Sub
-                - https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/AddTo-SystemPath.ps1
+                - >-
+                  https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/AddTo-SystemPath.ps1
                 - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
                   S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
               authentication: S3AccessCreds
             'c:\cfn\scripts\Schedule-AD-PowershellTask.ps1':
               source: !Sub
-                - https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/Schedule-AD-PowershellTask.ps1
+                - >-
+                  https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/Schedule-AD-PowershellTask.ps1
                 - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
                   S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
               authentication: S3AccessCreds
             'C:\cfn\scripts\Join-Domain.ps1':
               source: !Sub
-                - https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}submodules/quickstart-microsoft-utilities/scripts/Join-Domain.ps1
-                - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
-                  S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
-              authentication: S3AccessCreds
-            'C:\cfn\scripts\Rename-Computer.ps1':
-              source: !Sub
-                - https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}submodules/quickstart-microsoft-utilities/scripts/Rename-Computer.ps1
+                - >-
+                  https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}submodules/quickstart-microsoft-utilities/scripts/Join-Domain.ps1
                 - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
                   S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
               authentication: S3AccessCreds
@@ -660,14 +717,15 @@ Resources:
                 powershell.exe
                   -Command New-AWSQuickStartResourceSignal
                     -Stack ${AWS::StackName}
-                    -Resource ESCWAInstance
+                    -Resource ESInstance
                     -Region ${AWS::Region}
               waitAfterCompletion: '0'
         040-ConfigureEnterpriseServer:
           files:
             'c:\cfn\scripts\StartESRegion.ps1':
               source: !Sub
-                - https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/StartESRegion.ps1
+                - >-
+                  https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/StartESRegion.ps1
                 - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
                   S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
               authentication: S3AccessCreds
@@ -686,7 +744,23 @@ Resources:
                     -LocalPort 86
                     -Protocol tcp
               waitAfterCompletion: '0'
-            c-configure-windows-firewall-es-admin-portal-rule:
+            c-configure-windows-firewall-pac-demoapp-tn3270-portal-rule:
+              command:
+                powershell.exe
+                  -Command New-NetFirewallRule
+                    -DisplayName 'SQLServer Demo App TN3270 Ingress'
+                    -LocalPort 5557
+                    -Protocol tcp
+              waitAfterCompletion: '0'
+            d-configure-windows-firewall-pac-demoapp-esmac-portal-rule:
+              command:
+                powershell.exe
+                  -Command New-NetFirewallRule
+                    -DisplayName 'PAC esmac Ingress'
+                    -LocalPort 5560
+                    -Protocol tcp
+              waitAfterCompletion: '0'
+            e-configure-windows-firewall-es-admin-portal-rule:
               command:
                 powershell.exe
                   -Command New-NetFirewallRule
@@ -694,17 +768,17 @@ Resources:
                     -LocalPort 86
                     -Protocol udp
               waitAfterCompletion: '0'
-            d-configure-windows-firewall-fs-demoapp-tn3270-portal-rule:
+            f-configure-windows-firewall-es-escwa-portal-rule:
               command:
                 powershell.exe
                   -Command New-NetFirewallRule
-                    -DisplayName 'Enterprise Server Common Web Administration Portal'
+                    -DisplayName 'Micro Focus Enterprise Server Admin Portal'
                     -LocalPort 10004
                     -Protocol tcp
               waitAfterCompletion: '0'
         050-ApplyESLicenseFile:
           files:
-            'c:\esdir\Enterprise-Server.mflic':
+            'd:\esdir\Enterprise-Server.mflic':
               source: !Sub
                 - >-
                   https://${ESS3BucketName}.${QSS3Region}.amazonaws.com/license/${ESLicenseFilename}
@@ -713,6 +787,13 @@ Resources:
                     - s3-us-gov-west-1
                     - s3
               authentication: S3AccessCreds
+            'c:\cfn\scripts\MFDS-Listen-all.ps1':
+              source: !Sub
+                - >-
+                  https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/MFDS-Listen-all.ps1
+                - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
+                  S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
+              authentication: S3AccessCreds
           commands:
             a-install-license:
               cwd: 'C:\Program Files (x86)\Common Files\SafeNet Sentinel\Sentinel RMS License Manager\WinNT\'
@@ -720,18 +801,15 @@ Resources:
                 start /wait
                   cesadmintool
                     -term install
-                    -f c:\esdir\Enterprise-Server.mflic
+                    -f d:\esdir\Enterprise-Server.mflic
               waitAfterCompletion: '0'
-        060-RenameAndJoinDomain:
-          commands:
-            a-rename-computer:
+            b-set-MFDS-listen-all:
               command:
-                powershell.exe
-                  -File C:\cfn\scripts\Rename-Computer.ps1
-                    -NewName ESCWAInstance
-                    -Restart
-              waitAfterCompletion: forever
-            b-join-domain-and-restart:
+                powershell.exe -File C:\cfn\scripts\MFDS-Listen-all.ps1
+              waitAfterCompletion: '0'
+        060-JoinDomain:
+          commands:
+            a-join-domain-and-restart:
               command: !Sub
                 powershell.exe
                   -File C:\cfn\scripts\Join-Domain.ps1
@@ -741,7 +819,7 @@ Resources:
               waitAfterCompletion: forever
             # Add 'Domain Users' to local RDP Group to they can RDP into this instance
             # Install A/D Management Tools
-            c-add-domain-users-rdp-users-group:
+            b-add-domain-users-rdp-users-group:
               command: !Sub
                 powershell
                   -Command
@@ -757,35 +835,144 @@ Resources:
                         }
                       }"
               waitAfterCompletion: '0'
-        070-Setup-ESCWA-Environment:
+        070-Setup-PAC-Database-Envrionment:
           files:
-            'c:\cfn\scripts\Configure-ESCWA.ps1':
+            'c:\cfn\assets\psqlodbc1_11_x86.zip':
+              source:
+                https://ftp.postgresql.org/pub/odbc/versions/msi/psqlodbc_11_01_0000-x86.zip
+            'c:\cfn\assets\psqlodbc1_11_x64.zip':
+              source:
+                https://ftp.postgresql.org/pub/odbc/versions/msi/psqlodbc_11_01_0000-x64.zip
+          commands:
+            a-Unzip-PsqlODBC-Driver-x86:
+              command:
+                powershell.exe
+                -File C:\cfn\scripts\Unzip-Archive.ps1
+                    -Source C:\cfn\assets\psqlodbc1_11_x86.zip
+                    -Destination C:\cfn\assets\psqlodbc_11_x86
+              waitAfterCompletion: '0'
+            b-Unzip-PsqlODBC-Driver-x64:
+              command:
+                powershell.exe
+                -File C:\cfn\scripts\Unzip-Archive.ps1
+                    -Source C:\cfn\assets\psqlodbc1_11_x64.zip
+                    -Destination C:\cfn\assets\psqlodbc_11_x64
+              waitAfterCompletion: '0'
+            c-install-PsqlODBC-Driver-x86:
+              command:
+                start /wait
+                  msiexec
+                    /quiet
+                    /passive
+                    /qn
+                    /i c:\cfn\assets\psqlodbc_11_x86\psqlodbc_x86.msi
+              waitAfterCompletion: '0'
+            d-install-PsqlODBC-Driver-x64:
+              command:
+                start /wait
+                  msiexec
+                    /quiet
+                    /passive
+                    /qn
+                    /i c:\cfn\assets\psqlodbc_11_x64\psqlodbc_x64.msi
+              waitAfterCompletion: '0'
+        080-InstallBankDemoPAC:
+          files:
+            'C:\cfn\scripts\deploy.bat':
               source: !Sub
-                - https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/Configure-ESCWA.ps1
+                - >-
+                  https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/deploy.bat
                 - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
                   S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
               authentication: S3AccessCreds
-            'c:\cfn\scripts\Delete-Default-MFDS.ps1':
+            'C:\cfn\scripts\configure-and-import-pac-region.ps1':
               source: !Sub
-                - https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/Delete-Default-MFDS.ps1
+                - >-
+                  https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/configure-and-import-pac-region.ps1
                 - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
                   S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
               authentication: S3AccessCreds
-            'c:\cfn\scripts\Configure-PAC.ps1':
+            'C:\cfn\scripts\Add-region-to-PAC.ps1':
               source: !Sub
-                - https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/Configure-PAC.ps1
+                - >-
+                  https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/Add-region-to-PAC.ps1
                 - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
                   S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
               authentication: S3AccessCreds
+            'c:\cfn\scripts\CreateDSN_PAC.ps1':
+              content: !Sub |
+                try{
+                  # Create ODBC DNS to the BankDemo database
+                  Add-OdbcDsn `
+                      -Name PG.VSAM `
+                      -DriverName "PostgreSQL ANSI" `
+                      -DsnType "System" `
+                      -Platform "32-bit" `
+                      -SetPropertyValue @("Server=ESPACDatabase", "UserName=esuser", 'Database=MicroFocus$SEE$Files$VSAM', "Password=${PACDBMasterUserPassword}")
+
+                  Add-OdbcDsn `
+                      -Name PG.POSTGRES `
+                      -DriverName "PostgreSQL ANSI" `
+                      -DsnType "System" `
+                      -Platform "32-bit" `
+                      -SetPropertyValue @("Server=ESPACDatabase", "UserName=esuser", "Database=postgres", "Password=${PACDBMasterUserPassword}")
+                  
+                  Add-OdbcDsn `
+                      -Name PG.REGION `
+                      -DriverName "PostgreSQL ANSI" `
+                      -DsnType "System" `
+                      -Platform "32-bit" `
+                      -SetPropertyValue @("Server=ESPACDatabase", "UserName=esuser", 'Database=MicroFocus$CAS$Region$DEMOPAC', "Password=${PACDBMasterUserPassword}")
+
+                  Add-OdbcDsn `
+                      -Name PG.CROSSREGION `
+                      -DriverName "PostgreSQL ANSI" `
+                      -DsnType "System" `
+                      -Platform "32-bit" `
+                      -SetPropertyValue @("Server=ESPACDatabase", "UserName=esuser", 'Database=MicroFocus$CAS$CrossRegion', "Password=${PACDBMasterUserPassword}")
+                } catch {
+                  $_ | Write-AWSQuickStartException
+                }
+          commands:
+            a-CreateDSN:
+              command:
+                powershell.exe
+                  -File c:\cfn\scripts\CreateDSN_PAC.ps1
+              waitAfterCompletion: '0'
+            b-configure-and-import-region:
+              cwd: C:\Program Files (x86)\Micro Focus\Enterprise Server\bin
+              command:
+                powershell.exe -File c:\cfn\scripts\configure-and-import-pac-region.ps1 -Regionname BNKDM
+              waitAfterCompletion: '0'
+            c-import-data-files:
+              cwd: C:\Program Files (x86)\Micro Focus\Enterprise Server\bin
+              command:
+                start /wait c:\cfn\scripts\deploy.bat
+              waitAfterCompletion: '0'
+            d-add-region-to-PAC:
+              command:
+                powershell.exe -File c:\cfn\scripts\Add-region-to-PAC.ps1
+              waitAfterCompletion: '0'
+        090-ChangeMFDSServiceStartName:
+          files:
             'c:\cfn\scripts\Configure-UserLogonPrivileges.ps1':
               source: !Sub
-                - https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/Configure-UserLogonPrivileges.ps1
+                - >-
+                  https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/Configure-UserLogonPrivileges.ps1
                 - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
                   S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
               authentication: S3AccessCreds
-            'c:\cfn\scripts\CloudWatch-Metrics-Pusher.ps1':
+            'c:\cfn\scripts\Change-NTServiceStartName.ps1':
               source: !Sub
-                - https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/CloudWatch-Metrics-Pusher.ps1
+                - >-
+                  https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/Change-NTServiceStartName.ps1
+                - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
+                  S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
+              authentication: S3AccessCreds
+            'C:\cfn\scripts\Configure-ESCWA.ps1':
+              source: !Sub
+                - >-
+                  https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/Configure-ESCWA.ps1
                 - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
                   S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
               authentication: S3AccessCreds
@@ -806,7 +993,20 @@ Resources:
                     -PrivilegeName "SeBatchLogonRight"
                     -Status Grant
               waitAfterCompletion: '0'
-            c-Configure-ESCWA:
+            c-grant-mfds-account-permissions:
+              cwd: C:\ProgramData
+              command: !Sub
+                icacls "C:\ProgramData\Micro Focus" /grant ${DomainNetBIOSName}\${MFDSServiceAccountName}:(OI)(CI)F /T
+              waitAfterCompletion: '0'
+            d-change-mfds-service-startname:
+              command: !Sub
+                powershell.exe
+                  -File c:\cfn\scripts\Change-NTServiceStartName.ps1
+                    -ServiceName MF_CCITCP2
+                    -StartName "${DomainNetBIOSName}\${MFDSServiceAccountName}"
+                    -StartPassword ${MFDSServiceAccountPassword}
+              waitAfterCompletion: '0'
+            e-configure-escwa:
               command: !Sub
                 powershell.exe
                   -File c:\cfn\scripts\Configure-ESCWA.ps1
@@ -814,29 +1014,34 @@ Resources:
                   -ServiceUser ${MFDSServiceAccountName}
                   -ServicePassword ${MFDSServiceAccountPassword}
               waitAfterCompletion: '0'
-            d-delete-default-MFDS:
+            f-grant-ESDemouser-account-remote-logon:
               command: !Sub
                 powershell.exe
-                  -File c:\cfn\scripts\Delete-Default-MFDS.ps1
-                  -DomainNetBIOSName ${DomainNetBIOSName}
-                  -ServiceUser ${MFDSServiceAccountName}
-                  -ServicePassword ${MFDSServiceAccountPassword}
+                  -File c:\cfn\scripts\Configure-UserLogonPrivileges.ps1
+                    -Username "${DomainNetBIOSName}\ESDemoUser"
+                    -PrivilegeName "SeRemoteInteractiveLogonRight"
+                    -Status Grant
               waitAfterCompletion: '0'
-            e-Configure-PAC:
-              command:
-                powershell.exe
-                  -File c:\cfn\scripts\Configure-PAC.ps1
-              waitAfterCompletion: '0'
-            f-start-CloudWatch-metrics-pusher:
+        100-Start-BNKDM:
+          files:
+            'c:\cfn\scripts\StartESRegion-cold.ps1':
+              source: !Sub
+                - >-
+                  https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/StartESRegion-cold.ps1
+                - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
+                  S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
+              authentication: S3AccessCreds
+          commands:
+            a-start-BNKDM-region:
               command: !Sub
                 powershell.exe
                   -File c:\cfn\scripts\Schedule-AD-PowershellTask.ps1
-                    -TaskName startCloudWatchMetricsPusher
-                    -TaskArguments "-File c:\cfn\scripts\CloudWatch-Metrics-Pusher.ps1 -Namespace ${MetricsNamespace}"
+                    -TaskName startBNKDM
+                    -TaskArguments "-File c:\cfn\scripts\StartESRegion-cold.ps1 -RegionName BNKDM"
                     -DomainUserName "${DomainNetBIOSName}\${MFDSServiceAccountName}"
                     -DomainUserPassword "${MFDSServiceAccountPassword}"
               waitAfterCompletion: '0'
-        080-Finalize:
+        110-Finalize:
           commands:
             a-finalize-init:
               command:
@@ -847,20 +1052,23 @@ Resources:
       AvailabilityZone: !Select
         - 0
         - !Ref AvailabilityZones
+      Volumes:
+        - VolumeId: !Ref ESPrimaryDataVolume
+          Device: xvdb
       SubnetId: !Ref SubnetID
       SecurityGroupIds:
         - !Ref DomainMemberSGID
         - !Ref ESClientAccessSGID
-      IamInstanceProfile: !Ref ESCWAInstanceRoleProfile
+      IamInstanceProfile: !Ref ESInstanceRoleProfile
       KeyName: !Ref KeyPairName
-      InstanceType: !Ref ESCWAInstanceType
+      InstanceType: !Ref ESInstanceType
       ImageId: !FindInMap
         - AWSAMIRegionMap
         - !Ref 'AWS::Region'
         - MFES40AMI
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-ESCWA'
+          Value: !Sub '${AWS::StackName}-ESSERVER-COLD'
       UserData: !Base64
         'Fn::Sub':
           - |
@@ -877,13 +1085,13 @@ Resources:
               start /wait C:\AmazonSSMAgentSetup.exe /install /quiet
 
               rem Run cfn-init helper to process AWS::CloudFormation::Init directives
-              cfn-init.exe -v -c config -s ${AWS::StackName} --resource ESCWAInstance --region ${AWS::Region}
+              cfn-init.exe -v -c config -s ${AWS::StackName} --resource ESInstance --region ${AWS::Region}
             </script>
           - QSS3Region: !If
               - GovCloudCondition
               - s3-us-gov-west-1
               - s3
-  ESCWAInstanceRecoveryAlarm:
+  ESInstanceRecoveryAlarm:
     Type: 'AWS::CloudWatch::Alarm'
     Properties:
       AlarmDescription: !Sub |
@@ -903,19 +1111,19 @@ Resources:
           - !Ref 'AWS::NoValue'
       Dimensions:
         - Name: InstanceId
-          Value: !Ref ESCWAInstance
+          Value: !Ref ESInstance
 Outputs:
-  ESCWAInstanceID:
+  ESInstanceID:
     Description: The Enterprise Server EC2 Instance ID
-    Value: !Ref ESCWAInstance
-  ESCWAInstanceAZ:
+    Value: !Ref ESInstance
+  ESInstanceAZ:
     Description: >-
       The Availability Zone where the deployed Enterprise Server instance is
       launched.
-    Value: !GetAtt ESCWAInstance.AvailabilityZone
-  ESCWAInstancePrivateDnsName:
+    Value: !GetAtt ESInstance.AvailabilityZone
+  ESInstancePrivateDnsName:
     Description: The private DNS name of the deployed Enterprise Server instance
-    Value: !GetAtt ESCWAInstance.PrivateDnsName
-  ESCWAInstancePrivateIp:
+    Value: !GetAtt ESInstance.PrivateDnsName
+  ESInstancePrivateIp:
     Description: The private IP address of the deployed Enterprise Server instance
-    Value: !GetAtt ESCWAInstance.PrivateIp
+    Value: !GetAtt ESInstance.PrivateIp

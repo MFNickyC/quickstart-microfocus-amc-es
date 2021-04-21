@@ -18,9 +18,9 @@ while (( "$#" )); do
     shift
 done
 
-if [ $Delay -gt "0" ]; then
-    sleep $Delay
-fi
+# if [ $Delay -gt "0" ]; then
+#     sleep $Delay
+# fi
 
 source /opt/microfocus/EnterpriseDeveloper/bin/cobsetenv
 

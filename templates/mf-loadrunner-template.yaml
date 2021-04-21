@@ -13,22 +13,10 @@
 # limitations under the License.
 AWSTemplateFormatVersion: 2010-09-09
 Description: >-
-  "This template deploys a single Micro Focus Enterprise Server instance as
-  defined in the Micro Focus Enterprise Server Reference Architecture.
-  **WARNING** This template creates EC2 instances and related resources. You
-  will be billed for the AWS resources used if you create a stack from this
-  template. License: Apache 2.0 (Please do not remove) Sept,05,2018. Micro Focus
-  Enterprise Server is licensed separately, please review the terms and
-  conditions here (https://www.microfocus.com/about/legal/) for further details.
-  (qs-1qeg3mku7)"
+  "Cool LoadRunner Template"
 Metadata:
   'AWS::CloudFormation::Interface':
     ParameterGroups:
-      - Label:
-          default: Software License Agreement
-        Parameters:
-          - LicenseAgreement
-          - ESLicenseFilename
       - Label:
           default: Network Configuration
         Parameters:
@@ -42,13 +30,11 @@ Metadata:
           - DomainMemberSGID
           - DomainAdminPassword
       - Label:
-          default: Enterprise Server Configuration
+          default: LoadRunner Configuration
         Parameters:
-          - ESCWAInstanceType
+          - LoadBalancerDNSName
+          - LoadRunnerInstanceType
           - KeyPairName
-          - MetricsNamespace
-          - MFDSServiceAccountName
-          - MFDSServiceAccountPassword
           - ESClientAccessSGID
           - ESS3BucketName
           - EMailNotificationTopic
@@ -76,22 +62,14 @@ Metadata:
         default: Enterprise Server Application (Client) Access Security Group ID
       ESCWLogGroup:
         default: Amazon CloudWatch Log Group
-      ESCWAInstanceType:
-        default: Enterprise Server instance type
-      ESLicenseFilename:
-        default: Enterprise Server license filename
       ESS3BucketName:
         default: Enterprise Server S3 bucket name
       KeyPairName:
         default: Key pair name
-      LicenseAgreement:
-        default: License agreement
-      MetricsNamespace:
-        default: Namespace for the Enterprise Server custom metrics
-      MFDSServiceAccountName:
-        default: Micro Focus Directory Server service domain account name
-      MFDSServiceAccountPassword:
-        default: Micro Focus Directory Server service account password
+      LoadBalancerDNSName:
+        default: The DNS name for the load balancer
+      LoadRunnerInstanceType:
+        default: LoadRunner instance type
       SubnetID:
         default: Subnet ID
       QSS3BucketName:
@@ -149,19 +127,18 @@ Parameters:
   ESCWLogGroup:
     Type: String
     Description: The logical ID of the Amazon CloudWatch Logs Log Group
-  ESCWAInstanceType:
+  LoadBalancerDNSName:
+    AllowedPattern: '[a-zA-Z0-9\-]+\..+'
+    Description: The DNS name for the load balancer
+    Type: String
+  LoadRunnerInstanceType:
     AllowedValues:
       - c5.large
       - c5.xlarge
       - c5.2xlarge
       - c5.4xlarge
-    Description: The type of Enterprise Server instance.
+    Description: The type of Load Runner instance.
     Default: c5.large
-    Type: String
-  ESLicenseFilename:
-    Description: >-
-      Place the license file obtained from Micro Focus in the S3 bucket folder:
-      s3://<Enterprise Server S3 bucket name>/license/
     Type: String
   ESS3BucketName:
     AllowedPattern: '^[a-z0-9][a-z0-9-.]*$'
@@ -176,47 +153,6 @@ Parameters:
     Description: >-
       The name of an existing EC2 key pair. All instances will launch with this key pair.
     Type: 'AWS::EC2::KeyPair::KeyName'
-  LicenseAgreement:
-    Description: >-
-      I have read and agree to the license terms for Micro Focus Enterprise
-      Server
-      (https://www.microfocus.com/documentation/enterprise-developer/ed-latest/ES-WIN/GUID-0562B3C9-2271-4CE8-AF64-93DE4940077F.html).
-    Type: String
-    Default: '-'
-    AllowedValues:
-      - I agree
-      - '-'
-    ConstraintDescription: must answer 'I agree'.
-  MetricsNamespace:
-    Type: String
-    AllowedPattern: '[a-zA-Z0-9\.\-_\/#:]*'
-    Default: Custom
-    Description: >-
-      The namespace must be 1-256 characters. Possible characters are: alphanumeric
-      characters (0-9A-Za-z), period (.), hyphen (-), underscore (_),
-      forward slash (/), hash (#), and colon (:).
-    MaxLength: '256'
-    MinLength: '1'
-  MFDSServiceAccountName:
-    Type: String
-    AllowedPattern: '[a-zA-Z0-9]*'
-    Default: 'MFDSServiceAccount'
-    Description: >-
-      The existing domain account name under which the service will run. If left as
-      default, a domain account 'MFDSServiceAccount' is created. The name must be
-      5-25 characters.
-    MaxLength: '25'
-    MinLength: '5'
-  MFDSServiceAccountPassword:
-    Type: String
-    AllowedPattern: >-
-      (?=^.{6,255}$)((?=.*\d)(?=.*[A-Z])(?=.*[a-z])|(?=.*\d)(?=.*[^A-Za-z0-9])(?=.*[a-z])|(?=.*[^A-Za-z0-9])(?=.*[A-Z])(?=.*[a-z])|(?=.*\d)(?=.*[A-Z])(?=.*[^A-Za-z0-9]))^.*
-    Description: >-
-      Enter a password for MFDSServiceAccount. Must be at least 8 characters
-      containing letters, numbers, and symbols.
-    MaxLength: '32'
-    MinLength: '8'
-    NoEcho: true
   SubnetID:
     Description: 'The ID of a private subnet in an Availability Zone (e.g., subnet-a0246dcd).'
     Type: 'AWS::EC2::Subnet::Id'
@@ -254,64 +190,27 @@ Rules:
               - 'Fn::RefAll': 'AWS::EC2::KeyPair::KeyName'
               - ''
         AssertDescription: All key pair parameters must not be empty.
-  LicenseAgreementRule:
-    Assertions:
-      - Assert:
-          'Fn::Contains':
-            - - I agree
-            - !Ref LicenseAgreement
-        AssertDescription: User must agree to the terms of the license agreement.
 Mappings:
   AWSAMIRegionMap:
     AMI:
-      MFES40AMI: ES_60_PU01
-    ap-northeast-1:
-      MFES40AMI: ami-0bae6d1d03ad5c38c
-    ap-northeast-2:
-      MFES40AMI: ami-080a4712b1e7350ed
-    ap-south-1:
-      MFES40AMI: ami-0f2b2823ac1d8f95d
-    ap-southeast-1:
-      MFES40AMI: ami-0065e05aaecced65a
-    ap-southeast-2:
-      MFES40AMI:  ami-0de81adc57c6df12a
-    ca-central-1:
-      MFES40AMI: ami-0c4ea4d6fba07f0ee
-    eu-central-1:
-      MFES40AMI: ami-08dde1e820f9f5ef9
-    eu-north-1:
-      MFES40AMI: ami-0e2813f8efc423d3f
+      LRAMI: LR_CE_21_CLEAN
     eu-west-1:
-      MFES40AMI: ami-0be7439f5e8e1c577
+      LRAMI: ami-0060966d1a8532185
     eu-west-2:
-      MFES40AMI: ami-001842da48968696d
-    eu-west-3:
-      MFES40AMI: ami-0c479b1af672abf62
-    sa-east-1:
-      MFES40AMI: ami-08d30d58645251f63
+      LRAMI: ami-098a3f92175ee0063
     us-east-1:
-      MFES40AMI: ami-0f308ab79b6c2d1e8
-    us-east-2:
-      MFES40AMI: ami-0b0fcb621219073d3
-    us-west-1:
-      MFES40AMI: ami-01d36394b9ba7bc6b
-    us-west-2:
-      MFES40AMI: ami-0526b4845e872052b
+      LRAMI: ami-0af532a53c25f5fa6
 Conditions:
   UsingDefaultBucket: !Equals [!Ref QSS3BucketName, 'aws-quickstart']
   GovCloudCondition: !Equals
     - !Ref 'AWS::Region'
     - us-gov-west-1
-  HaveESlicenseFilename: !Not
-    - !Equals
-      - !Ref ESLicenseFilename
-      - ''
   HaveEMailNotificationTopic: !Not
     - !Equals
       - !Ref EMailNotificationTopic
       - ''
 Resources:
-  ESCWAInstanceRole:
+  LoadRunnerInstanceRole:
     Type: 'AWS::IAM::Role'
     Properties:
       AssumeRolePolicyDocument:
@@ -353,36 +252,14 @@ Resources:
                   - 'ds:Describe*'
                 Effect: Allow
                 Resource: '*'
-          PolicyName: ESCWAInstancePolicy
-        - PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Effect: Allow
-                Action: 'cloudwatch:PutMetricData'
-                Resource: '*'
-          PolicyName: 'cloudwatch-put-metric-data'
-  ESCWAInstanceRoleProfile:
+          PolicyName: LoadRunnerInstancePolicy
+  LoadRunnerInstanceRoleProfile:
     Type: 'AWS::IAM::InstanceProfile'
     Properties:
       Path: /
       Roles:
-        - !Ref ESCWAInstanceRole
-  LambdaExecutionRole:
-    Type: 'AWS::IAM::Role'
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service:
-                - lambda.amazonaws.com
-            Action:
-              - 'sts:AssumeRole'
-      Path: /
-      ManagedPolicyArns:
-        - 'arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole'
-  ESCWAInstance:
+        - !Ref LoadRunnerInstanceRole
+  LoadRunnerInstance:
     Type: 'AWS::EC2::Instance'
     CreationPolicy:
       ResourceSignal:
@@ -392,7 +269,7 @@ Resources:
       'AWS::CloudFormation::Authentication':
         S3AccessCreds:
           type: S3
-          roleName: !Ref ESCWAInstanceRole
+          roleName: !Ref LoadRunnerInstanceRole
           buckets:
             - !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
             - !Ref ESS3BucketName
@@ -402,14 +279,9 @@ Resources:
             - 010-InstallTools
             - 020-ConfigureCWLogs
             - 030-InitPowerShell
-            - 040-ConfigureEnterpriseServer
-            - !If
-              - HaveESlicenseFilename
-              - 050-ApplyESLicenseFile
-              - 000-NoOperation
-            - 060-RenameAndJoinDomain
-            - 070-Setup-ESCWA-Environment
-            - 080-Finalize
+            - 040-RenameAndJoinDomain
+            - 050-Setup-LoadRunner-Environment
+            - 060-Finalize
         000-NoOperation:
           commands:
             a-no-operation:
@@ -607,8 +479,8 @@ Resources:
               content: !Sub |
                 [cfn-auto-reloader-hook]
                 triggers=post.update
-                path=Resources.ESCWAInstance.Metadata.AWS::CloudFormation::Init
-                action=cfn-init.exe -v -c config -s ${AWS::StackId} --resource ESCWAInstance --region ${AWS::Region}
+                path=Resources.LoadRunnerInstance.Metadata.AWS::CloudFormation::Init
+                action=cfn-init.exe -v -c config -s ${AWS::StackId} --resource LoadRunnerInstance --region ${AWS::Region}
             'c:\cfn\scripts\AddTo-SystemPath.ps1':
               source: !Sub
                 - https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/AddTo-SystemPath.ps1
@@ -660,75 +532,16 @@ Resources:
                 powershell.exe
                   -Command New-AWSQuickStartResourceSignal
                     -Stack ${AWS::StackName}
-                    -Resource ESCWAInstance
+                    -Resource LoadRunnerInstance
                     -Region ${AWS::Region}
               waitAfterCompletion: '0'
-        040-ConfigureEnterpriseServer:
-          files:
-            'c:\cfn\scripts\StartESRegion.ps1':
-              source: !Sub
-                - https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/StartESRegion.ps1
-                - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
-                  S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
-              authentication: S3AccessCreds
-          commands:
-            a-update-system-path:
-              command:
-                powershell.exe
-                  -File c:\cfn\scripts\AddTo-SystemPath.ps1
-                    -PathToAdd "C:\Program Files (x86)\Micro Focus\Enterprise Server\bin"
-              waitAfterCompletion: '0'
-            b-configure-windows-firewall-es-admin-portal-rule:
-              command:
-                powershell.exe
-                  -Command New-NetFirewallRule
-                    -DisplayName 'Micro Focus Enterprise Server Admin Portal'
-                    -LocalPort 86
-                    -Protocol tcp
-              waitAfterCompletion: '0'
-            c-configure-windows-firewall-es-admin-portal-rule:
-              command:
-                powershell.exe
-                  -Command New-NetFirewallRule
-                    -DisplayName 'Micro Focus Enterprise Server Admin Portal'
-                    -LocalPort 86
-                    -Protocol udp
-              waitAfterCompletion: '0'
-            d-configure-windows-firewall-fs-demoapp-tn3270-portal-rule:
-              command:
-                powershell.exe
-                  -Command New-NetFirewallRule
-                    -DisplayName 'Enterprise Server Common Web Administration Portal'
-                    -LocalPort 10004
-                    -Protocol tcp
-              waitAfterCompletion: '0'
-        050-ApplyESLicenseFile:
-          files:
-            'c:\esdir\Enterprise-Server.mflic':
-              source: !Sub
-                - >-
-                  https://${ESS3BucketName}.${QSS3Region}.amazonaws.com/license/${ESLicenseFilename}
-                - QSS3Region: !If
-                    - GovCloudCondition
-                    - s3-us-gov-west-1
-                    - s3
-              authentication: S3AccessCreds
-          commands:
-            a-install-license:
-              cwd: 'C:\Program Files (x86)\Common Files\SafeNet Sentinel\Sentinel RMS License Manager\WinNT\'
-              command:
-                start /wait
-                  cesadmintool
-                    -term install
-                    -f c:\esdir\Enterprise-Server.mflic
-              waitAfterCompletion: '0'
-        060-RenameAndJoinDomain:
+        040-RenameAndJoinDomain:
           commands:
             a-rename-computer:
               command:
                 powershell.exe
                   -File C:\cfn\scripts\Rename-Computer.ps1
-                    -NewName ESCWAInstance
+                    -NewName LoadRunner
                     -Restart
               waitAfterCompletion: forever
             b-join-domain-and-restart:
@@ -757,86 +570,43 @@ Resources:
                         }
                       }"
               waitAfterCompletion: '0'
-        070-Setup-ESCWA-Environment:
+        050-Setup-LoadRunner-Environment:
           files:
-            'c:\cfn\scripts\Configure-ESCWA.ps1':
+            'c:\cfn\assets\Calculate_Loan_Cost.zip':
               source: !Sub
-                - https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/Configure-ESCWA.ps1
+                - https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}loadrunner/Calculate_Loan_Cost.zip
                 - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
                   S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
               authentication: S3AccessCreds
-            'c:\cfn\scripts\Delete-Default-MFDS.ps1':
+            'C:\Users\Public\LoadRunner Example\Scenario\Calculate_Loan_Cost.lrs':
               source: !Sub
-                - https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/Delete-Default-MFDS.ps1
-                - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
-                  S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
-              authentication: S3AccessCreds
-            'c:\cfn\scripts\Configure-PAC.ps1':
-              source: !Sub
-                - https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/Configure-PAC.ps1
-                - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
-                  S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
-              authentication: S3AccessCreds
-            'c:\cfn\scripts\Configure-UserLogonPrivileges.ps1':
-              source: !Sub
-                - https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/Configure-UserLogonPrivileges.ps1
-                - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
-                  S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
-              authentication: S3AccessCreds
-            'c:\cfn\scripts\CloudWatch-Metrics-Pusher.ps1':
-              source: !Sub
-                - https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/CloudWatch-Metrics-Pusher.ps1
+                - https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}loadrunner/Calculate_Loan_Cost.lrs
                 - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
                   S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
               authentication: S3AccessCreds
           commands:
-            a-grant-mfds-account-logon-as-a-service:
-              command: !Sub
-                powershell.exe
-                  -File c:\cfn\scripts\Configure-UserLogonPrivileges.ps1
-                    -Username "${DomainNetBIOSName}\${MFDSServiceAccountName}"
-                    -PrivilegeName "SeServiceLogonRight"
-                    -Status Grant
-              waitAfterCompletion: '0'
-            b-grant-mfds-account-logon-as-batch-job:
-              command: !Sub
-                powershell.exe
-                  -File c:\cfn\scripts\Configure-UserLogonPrivileges.ps1
-                    -Username "${DomainNetBIOSName}\${MFDSServiceAccountName}"
-                    -PrivilegeName "SeBatchLogonRight"
-                    -Status Grant
-              waitAfterCompletion: '0'
-            c-Configure-ESCWA:
-              command: !Sub
-                powershell.exe
-                  -File c:\cfn\scripts\Configure-ESCWA.ps1
-                  -DomainNetBIOSName ${DomainNetBIOSName}
-                  -ServiceUser ${MFDSServiceAccountName}
-                  -ServicePassword ${MFDSServiceAccountPassword}
-              waitAfterCompletion: '0'
-            d-delete-default-MFDS:
-              command: !Sub
-                powershell.exe
-                  -File c:\cfn\scripts\Delete-Default-MFDS.ps1
-                  -DomainNetBIOSName ${DomainNetBIOSName}
-                  -ServiceUser ${MFDSServiceAccountName}
-                  -ServicePassword ${MFDSServiceAccountPassword}
-              waitAfterCompletion: '0'
-            e-Configure-PAC:
+            a-Create-Folders:
               command:
                 powershell.exe
-                  -File c:\cfn\scripts\Configure-PAC.ps1
+                  -Command New-Item
+                    -ItemType Directory
+                    -Path 'C:\Users\Public\LoadRunner Results', 'C:\Users\Public\LoadRunner Example\Scripts'
               waitAfterCompletion: '0'
-            f-start-CloudWatch-metrics-pusher:
+            b-Unzip-LoadRunner-Scripts:
+              command:
+                powershell.exe
+                  -File C:\cfn\scripts\Unzip-Archive.ps1
+                    -Source C:\cfn\assets\Calculate_Loan_Cost.zip
+                    -Destination "C:\Users\Public\LoadRunner Example\Scripts"
+              waitAfterCompletion: '0'
+            c-Update-Hostname-Parameter:
               command: !Sub
                 powershell.exe
-                  -File c:\cfn\scripts\Schedule-AD-PowershellTask.ps1
-                    -TaskName startCloudWatchMetricsPusher
-                    -TaskArguments "-File c:\cfn\scripts\CloudWatch-Metrics-Pusher.ps1 -Namespace ${MetricsNamespace}"
-                    -DomainUserName "${DomainNetBIOSName}\${MFDSServiceAccountName}"
-                    -DomainUserPassword "${MFDSServiceAccountPassword}"
+                  -Command Add-Content
+                    -Path 'C:\Users\Public\LoadRunner Example\Scripts\Calculate_Loan_Cost\Hostname.dat'
+                    -Value ${LoadBalancerDNSName}
               waitAfterCompletion: '0'
-        080-Finalize:
+        060-Finalize:
           commands:
             a-finalize-init:
               command:
@@ -851,16 +621,16 @@ Resources:
       SecurityGroupIds:
         - !Ref DomainMemberSGID
         - !Ref ESClientAccessSGID
-      IamInstanceProfile: !Ref ESCWAInstanceRoleProfile
+      IamInstanceProfile: !Ref LoadRunnerInstanceRoleProfile
       KeyName: !Ref KeyPairName
-      InstanceType: !Ref ESCWAInstanceType
+      InstanceType: !Ref LoadRunnerInstanceType
       ImageId: !FindInMap
         - AWSAMIRegionMap
         - !Ref 'AWS::Region'
-        - MFES40AMI
+        - LRAMI
       Tags:
         - Key: Name
-          Value: !Sub '${AWS::StackName}-ESCWA'
+          Value: !Sub '${AWS::StackName}-LoadRunner'
       UserData: !Base64
         'Fn::Sub':
           - |
@@ -877,13 +647,13 @@ Resources:
               start /wait C:\AmazonSSMAgentSetup.exe /install /quiet
 
               rem Run cfn-init helper to process AWS::CloudFormation::Init directives
-              cfn-init.exe -v -c config -s ${AWS::StackName} --resource ESCWAInstance --region ${AWS::Region}
+              cfn-init.exe -v -c config -s ${AWS::StackName} --resource LoadRunnerInstance --region ${AWS::Region}
             </script>
           - QSS3Region: !If
               - GovCloudCondition
               - s3-us-gov-west-1
               - s3
-  ESCWAInstanceRecoveryAlarm:
+  LoadRunnerInstanceRecoveryAlarm:
     Type: 'AWS::CloudWatch::Alarm'
     Properties:
       AlarmDescription: !Sub |
@@ -903,19 +673,19 @@ Resources:
           - !Ref 'AWS::NoValue'
       Dimensions:
         - Name: InstanceId
-          Value: !Ref ESCWAInstance
+          Value: !Ref LoadRunnerInstance
 Outputs:
-  ESCWAInstanceID:
-    Description: The Enterprise Server EC2 Instance ID
-    Value: !Ref ESCWAInstance
-  ESCWAInstanceAZ:
+  LoadRunnerInstanceID:
+    Description: The LoadRunner EC2 Instance ID
+    Value: !Ref LoadRunnerInstance
+  LoadRunnerInstanceAZ:
     Description: >-
       The Availability Zone where the deployed Enterprise Server instance is
       launched.
-    Value: !GetAtt ESCWAInstance.AvailabilityZone
-  ESCWAInstancePrivateDnsName:
+    Value: !GetAtt LoadRunnerInstance.AvailabilityZone
+  LoadRunnerInstancePrivateDnsName:
     Description: The private DNS name of the deployed Enterprise Server instance
-    Value: !GetAtt ESCWAInstance.PrivateDnsName
-  ESCWAInstancePrivateIp:
+    Value: !GetAtt LoadRunnerInstance.PrivateDnsName
+  LoadRunnerInstancePrivateIp:
     Description: The private IP address of the deployed Enterprise Server instance
-    Value: !GetAtt ESCWAInstance.PrivateIp
+    Value: !GetAtt LoadRunnerInstance.PrivateIp

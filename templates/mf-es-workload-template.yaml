@@ -60,7 +60,9 @@ Metadata:
         Parameters:
           - OS
           - ESInstanceType
-          - NumberOfESInstance
+          - LoadRunnerInstanceType
+          - MaxNumberOfESInstances
+          - MetricsNamespace
           - KeyPairName
           - RegionsPerInstance
           - AdditionalESStorageinGiB
@@ -131,14 +133,18 @@ Metadata:
         default: Key pair name
       LicenseAgreement:
         default: License agreement
+      LoadRunnerInstanceType:
+        default: LoadRunner instance type
+      MaxNumberOfESInstances:
+        default: Maximum number of Enterprise Server instances to run simultaneously
+      MetricsNamespace:
+        default: Namespace for the Enterprise Server custom metrics
       MFDSServiceAccountName:
         default: Micro Focus Directory Server service domain account name
       MFDSServiceAccountPassword:
         default: Micro Focus Directory Server service account password
       MFDSServiceAccountPasswordConfirm:
         default: Re-enter the Micro Focus Directory Server service account password
-      NumberOfESInstance:
-        default: Number of Enterprise Server instances
       OperatorEmail:
         default: Operator email address
       PACDBInstanceClass:
@@ -274,6 +280,15 @@ Parameters:
     MinLength: '8'
     NoEcho: true
     Type: String
+  LoadRunnerInstanceType:
+    AllowedValues:
+      - c5.large
+      - c5.xlarge
+      - c5.2xlarge
+      - c5.4xlarge
+    Description: The type of Load Runner instance.
+    Default: c5.large
+    Type: String
   OS:
     AllowedValues:
       - Windows
@@ -371,6 +386,23 @@ Parameters:
       - I agree
       - '-'
     ConstraintDescription: Must answer 'I agree'.
+  MaxNumberOfESInstances:
+    Default: 3
+    MinValue: 3
+    MaxValue: 10
+    Description: >-
+      The maximum capacity (3-10) for the Enterprise Server Auto Scaling group.
+    Type: Number
+  MetricsNamespace:
+    Type: String
+    AllowedPattern: '[a-zA-Z0-9\.\-_\/#:]*'
+    Default: Custom
+    Description: >-
+      The namespace must be 1-256 characters. Possible characters are: alphanumeric
+      characters (0-9A-Za-z), period (.), hyphen (-), underscore (_),
+      forward slash (/), hash (#), and colon (:).
+    MaxLength: '256'
+    MinLength: '1'
   MFDSServiceAccountName:
     Type: String
     AllowedPattern: '[a-zA-Z0-9]*'
@@ -401,13 +433,6 @@ Parameters:
     MinLength: '8'
     NoEcho: true
     Type: String
-  NumberOfESInstance:
-    AllowedValues:
-      - 1
-      - 2
-    Default: 1
-    Description: The number of Enterprise Server instances to start.
-    Type: Number
   OperatorEmail:
     AllowedPattern: >-
       (?i)^None$|([a-zA-Z0-9_\-\.]+)@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.)|(([a-zA-Z0-9\-]+\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\]?)
@@ -564,21 +589,12 @@ Conditions:
   NamePrefixIsUndefined: !Equals
     - !Ref ESResourceNamePrefix
     - ''
-  Start2Instances: !Equals
-    - !Ref NumberOfESInstance
-    - 2
   OSRedhat: !Equals
     - !Ref OS
     - 'Red Hat Enterprise Linux'
   OSWindows: !Equals
     - !Ref OS
     - 'Windows'
-  Start2RedhatInstances: !And
-    - !Condition Start2Instances
-    - !Condition OSRedhat
-  Start2WindowsInstances: !And
-    - !Condition Start2Instances
-    - !Condition OSWindows
 Resources:
   EMailNotificationTopic:
     Type: 'AWS::SNS::Topic'
@@ -810,13 +826,14 @@ Resources:
         ESS3BucketName: !Ref ESS3BucketName
         KeyPairName: !Ref KeyPairName
         LicenseAgreement: !Ref LicenseAgreement
+        MetricsNamespace: !Ref MetricsNamespace
         MFDSServiceAccountName: !Ref MFDSServiceAccountName
         MFDSServiceAccountPassword: !Ref MFDSServiceAccountPassword
         QSS3BucketName: !Ref QSS3BucketName
         QSS3BucketRegion: !Ref QSS3BucketRegion
         QSS3KeyPrefix: !Ref QSS3KeyPrefix
         SubnetID: !Ref PrivateSubnet1AID
-  ESInstanceStack1:
+  ESInstanceRedHatAutoScalingStack:
     Condition: OSRedhat
     Type: 'AWS::CloudFormation::Stack'
     DependsOn:
@@ -839,56 +856,23 @@ Resources:
           - !Ref EMailNotificationTopic
           - !Ref 'AWS::NoValue'
         ESClientAccessSGID: !Ref ESInstance1ClientAccessSecurityGroup
-        ESInstanceName: ESServer1
         ESInstanceType: !Ref ESInstanceType
         ESLicenseFilename: !Ref ESLicenseFilename
         ESS3BucketName: !Ref ESS3BucketName
         AdditionalESStorageinGiB: !Ref AdditionalESStorageinGiB
         KeyPairName: !Ref KeyPairName
         LicenseAgreement: !Ref LicenseAgreement
+        MaxNumberOfESInstances: !Ref MaxNumberOfESInstances
+        MetricsNamespace: !Ref MetricsNamespace
         PACDBMasterUserPassword: !Ref PACDBMasterUserPassword
         QSS3BucketName: !Ref QSS3BucketName
         QSS3BucketRegion: !Ref QSS3BucketRegion
         QSS3KeyPrefix: !Ref QSS3KeyPrefix
         RegionsPerInstance: !Ref RegionsPerInstance
-        SubnetID: !Ref PrivateSubnet1AID
-  ESInstanceStack2:
-    Condition: Start2RedhatInstances
-    Type: 'AWS::CloudFormation::Stack'
-    DependsOn:
-      - ESCWAStack
-      - BootstrapStack
-    Properties:
-      TemplateURL: !Sub
-        - 'https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}templates/mf-es-redhat-template.yaml'
-        - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
-          S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
-      Parameters:
-        AvailabilityZones: !Join
-          - ','
-          - !Ref AvailabilityZones
-        DomainAdminPassword: !Ref DomainAdminPassword
-        DomainDNSName: !Ref DomainDNSName
-        DomainMemberSGID: !Ref DomainMemberSGID
-        EMailNotificationTopic: !If
-          - HaveOperatorEmail
-          - !Ref EMailNotificationTopic
-          - !Ref 'AWS::NoValue'
-        ESClientAccessSGID: !Ref ESInstance1ClientAccessSecurityGroup
-        ESInstanceName: ESServer2
-        ESInstanceType: !Ref ESInstanceType
-        ESLicenseFilename: !Ref ESLicenseFilename
-        ESS3BucketName: !Ref ESS3BucketName
-        AdditionalESStorageinGiB: !Ref AdditionalESStorageinGiB
-        KeyPairName: !Ref KeyPairName
-        LicenseAgreement: !Ref LicenseAgreement
-        PACDBMasterUserPassword: !Ref PACDBMasterUserPassword
-        QSS3BucketName: !Ref QSS3BucketName
-        QSS3BucketRegion: !Ref QSS3BucketRegion
-        QSS3KeyPrefix: !Ref QSS3KeyPrefix
-        RegionsPerInstance: !Ref RegionsPerInstance
-        SubnetID: !Ref PrivateSubnet1AID
-  ESInstanceWinStack1:
+        PrivateSubnet1AID: !Ref PrivateSubnet1AID
+        PrivateSubnet2AID: !Ref PrivateSubnet2AID
+        TargetGroup: !Ref PACDemoApp3270AppsLoadBalancerTargetGroup
+  ESInstanceWinAutoScalingStack:
     Condition: OSWindows
     Type: 'AWS::CloudFormation::Stack'
     DependsOn:
@@ -913,13 +897,14 @@ Resources:
           - !Ref 'AWS::NoValue'
         ESClientAccessSGID: !Ref ESInstance1ClientAccessSecurityGroup
         ESCWLogGroup: !Ref ESCWLogGroup
-        ESInstanceName: ESServer1
         ESInstanceType: !Ref ESInstanceType
         ESLicenseFilename: !Ref ESLicenseFilename
         ESS3BucketName: !Ref ESS3BucketName
         AdditionalESStorageinGiB: !Ref AdditionalESStorageinGiB
         KeyPairName: !Ref KeyPairName
         LicenseAgreement: !Ref LicenseAgreement
+        MaxNumberOfESInstances: !Ref MaxNumberOfESInstances
+        MetricsNamespace: !Ref MetricsNamespace
         MFDSServiceAccountName: !Ref MFDSServiceAccountName
         MFDSServiceAccountPassword: !Ref MFDSServiceAccountPassword
         PACDBMasterUserPassword: !Ref PACDBMasterUserPassword
@@ -927,47 +912,9 @@ Resources:
         QSS3BucketRegion: !Ref QSS3BucketRegion
         QSS3KeyPrefix: !Ref QSS3KeyPrefix
         RegionsPerInstance: !Ref RegionsPerInstance
-        SubnetID: !Ref PrivateSubnet1AID
-  ESInstanceWinStack2:
-    Condition: Start2WindowsInstances
-    Type: 'AWS::CloudFormation::Stack'
-    DependsOn:
-      - ESCWAStack
-      - BootstrapStack
-    Properties:
-      TemplateURL: !Sub
-        - 'https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}templates/mf-es-template.yaml'
-        - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
-          S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
-      Parameters:
-        AvailabilityZones: !Join
-          - ','
-          - !Ref AvailabilityZones
-        DomainAdminPassword: !Ref DomainAdminPassword
-        DomainDNSName: !Ref DomainDNSName
-        DomainMemberSGID: !Ref DomainMemberSGID
-        DomainNetBIOSName: !Ref DomainNetBIOSName
-        EMailNotificationTopic: !If
-          - HaveOperatorEmail
-          - !Ref EMailNotificationTopic
-          - !Ref 'AWS::NoValue'
-        ESClientAccessSGID: !Ref ESInstance1ClientAccessSecurityGroup
-        ESCWLogGroup: !Ref ESCWLogGroup
-        ESInstanceName: ESServer2
-        ESInstanceType: !Ref ESInstanceType
-        ESLicenseFilename: !Ref ESLicenseFilename
-        ESS3BucketName: !Ref ESS3BucketName
-        AdditionalESStorageinGiB: !Ref AdditionalESStorageinGiB
-        KeyPairName: !Ref KeyPairName
-        LicenseAgreement: !Ref LicenseAgreement
-        MFDSServiceAccountName: !Ref MFDSServiceAccountName
-        MFDSServiceAccountPassword: !Ref MFDSServiceAccountPassword
-        PACDBMasterUserPassword: !Ref PACDBMasterUserPassword
-        QSS3BucketName: !Ref QSS3BucketName
-        QSS3BucketRegion: !Ref QSS3BucketRegion
-        QSS3KeyPrefix: !Ref QSS3KeyPrefix
-        RegionsPerInstance: !Ref RegionsPerInstance
-        SubnetID: !Ref PrivateSubnet1AID
+        PrivateSubnet1AID: !Ref PrivateSubnet1AID
+        PrivateSubnet2AID: !Ref PrivateSubnet2AID
+        TargetGroup: !Ref PACDemoApp3270AppsLoadBalancerTargetGroup
   ESDemoAppsPublicNetworkLoadBalancer:
     Type: 'AWS::ElasticLoadBalancingV2::LoadBalancer'
     Properties:
@@ -1012,27 +959,6 @@ Resources:
                   - NamePrefixIsAWSStackname
                   - !Sub '${AWS::StackName}-'
                   - !Sub '${ESResourceNamePrefix}-'
-      Targets:
-        - !If
-          - OSRedhat
-          - Id: !GetAtt ESInstanceStack1.Outputs.ESInstanceID
-            Port: 5557
-          - !Ref 'AWS::NoValue'
-        - !If
-          - Start2RedhatInstances
-          - Id: !GetAtt ESInstanceStack2.Outputs.ESInstanceID
-            Port: 5557
-          - !Ref 'AWS::NoValue'
-        - !If
-          - OSWindows
-          - Id: !GetAtt ESInstanceWinStack1.Outputs.ESInstanceID
-            Port: 5557
-          - !Ref 'AWS::NoValue'
-        - !If
-          - Start2WindowsInstances
-          - Id: !GetAtt ESInstanceWinStack2.Outputs.ESInstanceID
-            Port: 5557
-          - !Ref 'AWS::NoValue'
       TargetType: instance
       UnhealthyThresholdCount: 3
       VpcId: !Ref VPCID
@@ -1045,6 +971,37 @@ Resources:
       LoadBalancerArn: !Ref ESDemoAppsPublicNetworkLoadBalancer
       Port: 5557
       Protocol: TCP
+  LoadRunnerStack:
+    Type: 'AWS::CloudFormation::Stack'
+    DependsOn:
+      - BootstrapStack
+    Properties:
+      TemplateURL: !Sub
+        - 'https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}templates/mf-loadrunner-template.yaml'
+        - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
+          S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
+      Parameters:
+        AvailabilityZones: !Join
+          - ','
+          - !Ref AvailabilityZones
+        DomainAdminPassword: !Ref DomainAdminPassword
+        DomainDNSName: !Ref DomainDNSName
+        DomainMemberSGID: !Ref DomainMemberSGID
+        DomainNetBIOSName: !Ref DomainNetBIOSName
+        EMailNotificationTopic: !If
+          - HaveOperatorEmail
+          - !Ref EMailNotificationTopic
+          - !Ref 'AWS::NoValue'
+        ESClientAccessSGID: !Ref ESInstance1ClientAccessSecurityGroup
+        ESCWLogGroup: !Ref ESCWLogGroup
+        ESS3BucketName: !Ref ESS3BucketName
+        KeyPairName: !Ref KeyPairName
+        LoadBalancerDNSName: !GetAtt ESDemoAppsPublicNetworkLoadBalancer.DNSName
+        LoadRunnerInstanceType: !Ref LoadRunnerInstanceType
+        QSS3BucketName: !Ref QSS3BucketName
+        QSS3BucketRegion: !Ref QSS3BucketRegion
+        QSS3KeyPrefix: !Ref QSS3KeyPrefix
+        SubnetID: !Ref PrivateSubnet1AID
 Outputs:
   ESDemoAppsPublicNetworkLoadBalancer:
     Description: The DNS name for the load balancer.

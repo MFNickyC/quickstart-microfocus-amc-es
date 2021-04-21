@@ -1,27 +1,19 @@
-[CmdletBinding()]
-param(
-    [Parameter(Mandatory=$true)]
-    [string]$ESInstanceName
-)
-
 try {
     $ErrorActionPreference = "Stop"
     Start-Transcript -Path c:\cfn\log\$($MyInvocation.MyCommand.Name).txt -Append -IncludeInvocationHeader;
     Write-Host "Configuring ESCWA"
-    #Logon to ESCWA
+
+    # Logon to ESCWA
     $JMessage = '{ \"mfUser\": \"\", \"mfPassword\": \"\" }'
 
-    $RequestURL = 'http://ESCWAInstance:10004/logon'
-    $Origin = 'Origin: http://ESCWAInstance:10004'
+    $RequestURL = 'http://localhost:10004/logon'
+    $Origin = 'Origin: http://localhost:10004'
 
     curl.exe -sX POST  $RequestURL -H 'accept: application/json' -H 'X-Requested-With: AgileDev' -H 'Content-Type: application/json' -H $Origin -d $Jmessage --cookie-jar cookie.txt | Out-Null
+
+    # Add PAC configuration to region
     Write-Host "Adding to PAC"
-    if ($ESInstanceName -eq "ESSERVER1") {
-        $RegionName = "BNKDM"
-    }else {
-        $RegionName = "BNKDM2"
-    }
-    $RequestURL = 'http://ESCWAInstance:10004/native/v1/regions/' + $ESInstanceName + '/86/' + $RegionName
+    $RequestURL = 'http://localhost:10004/native/v1/regions/127.0.0.1/86/BNKDM'
     $JMessage = '
         {
             \"mfCASSOR\": \"' + ":ES_SCALE_OUT_REPOS_1=DemoPSOR=redis,ESRedis:6379##TMP" + '\",

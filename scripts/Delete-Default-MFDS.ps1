@@ -16,31 +16,6 @@ try {
     $Service=gwmi win32_service -filter "Name='MF_CCITCP2'"
     $Service.delete()
 
-    function addDS {
-
-        Param
-        (
-            [Parameter(Mandatory = $true)]
-            [string] $HostName,
-            [Parameter(Mandatory = $true)]
-            [string] $Port,
-            [Parameter(Mandatory = $true)]
-            [string] $Name
-        )
-
-        $JMessage = '
-        {
-            \"MfdsHost\": \"' + $HostName + '\",
-            \"MfdsIdentifier\": \"' + $Name + '\",
-            \"MfdsPort\": \"' + $Port + '\"
-        }'
-
-        $RequestURL = 'http://localhost:10004/server/v1/config/mfds'
-        $Origin = 'Origin: http://localhost:10004'
-
-        curl.exe -sX POST $RequestURL -H 'accept: application/json' -H 'X-Requested-With: AgileDev' -H 'Content-Type: application/json' -H $Origin -d $Jmessage --cookie cookie.txt | Out-Null
-    }
-
     Write-Host "Configuring ESCWA"
     $JMessage = '{ \"mfUser\": \"\", \"mfPassword\": \"\" }'
 
@@ -60,9 +35,6 @@ try {
     $Uid=$mfdsObj.Uid
     $RequestURL = "http://localhost:10004/server/v1/config/mfds/$Uid"
     curl.exe -sX DELETE $RequestURL -H 'accept: application/json' -H 'X-Requested-With: AgileDev' -H 'Content-Type: application/json' -H $Origin --cookie cookie.txt | Out-Null
-
-    addDS -HostName "ESSERVER1" -Name "ESSERVER1" -Port "86"
-    addDS -HostName "ESSERVER2" -Name "ESSERVER2" -Port "86"
 }
 catch {
     $_ | Write-AWSQuickStartException
