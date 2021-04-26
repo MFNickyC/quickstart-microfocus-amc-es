@@ -418,6 +418,16 @@ Resources:
                 Effect: Allow
                 Resource: '*'
           PolicyName: ESInstancePolicy
+        - PolicyDocument:
+            Statement:
+              - Action: "autoscaling:CompleteLifecycleAction"
+                Effect: "Allow"
+                Resource: !Sub "arn:aws:autoscaling:${AWS::Region}:${AWS::AccountId}:autoScalingGroup:*:autoScalingGroupName/es_asg"
+              - Action: "autoscaling:DescribeAutoScalingInstances"
+                Effect: "Allow"
+                Resource: '*'
+            Version: 2012-10-17
+          PolicyName: AutoscalingPolicy
   ESInstanceRoleProfile:
     Type: 'AWS::IAM::InstanceProfile'
     Properties:
@@ -486,8 +496,6 @@ Resources:
             - 070-Setup-PAC-Database-Envrionment
             - 080-InstallBankDemoPAC
             - 090-ChangeMFDSServiceStartName
-            - 100-Start-BNKDM
-            - 110-Finalize
         000-NoOperation:
           commands:
             a-no-operation:
@@ -837,8 +845,6 @@ Resources:
                     -UserName ${DomainNetBIOSName}\Admin
                     -Password ${DomainAdminPassword}
               waitAfterCompletion: forever
-            # Add 'Domain Users' to local RDP Group to they can RDP into this instance
-            # Install A/D Management Tools
             b-add-domain-users-rdp-users-group:
               command: !Sub
                 powershell
@@ -1029,24 +1035,6 @@ Resources:
                     -PrivilegeName "SeRemoteInteractiveLogonRight"
                     -Status Grant
               waitAfterCompletion: '0'
-        100-Start-BNKDM:
-          commands:
-            a-start-BNKDM-region:
-              command: !Sub
-                powershell.exe
-                  -File c:\cfn\scripts\Schedule-AD-PowershellTask.ps1
-                    -TaskName startBNKDM
-                    -TaskArguments "-File c:\cfn\scripts\StartESRegion.ps1 -RegionName BNKDM -Delay yes"
-                    -DomainUserName "${DomainNetBIOSName}\${MFDSServiceAccountName}"
-                    -DomainUserPassword "${MFDSServiceAccountPassword}"
-              waitAfterCompletion: '0'
-        110-Finalize:
-          commands:
-            a-finalize-init:
-              command:
-                powershell.exe
-                  -Command Write-AWSQuickStartStatus
-              waitAfterCompletion: '0'
     Properties:
       LaunchTemplateName: "ESInstanceLaunchTemplate"
       LaunchTemplateData:
@@ -1079,20 +1067,63 @@ Resources:
           'Fn::Sub':
             - |
               <script>
-                rem Uninstall Amazon SSM Agent and AWS CLI to allow updating
-                wmic product where "description='Amazon SSM Agent' " uninstall
-                wmic product where "description='aws-cfn-bootstrap' " uninstall
+                if not exist c:\cfn\scripts\Join-Domain.ps1 (
+                  rem Uninstall Amazon SSM Agent and AWS CLI to allow updating
+                  wmic product where "description='Amazon SSM Agent' " uninstall
+                  wmic product where "description='aws-cfn-bootstrap' " uninstall
 
-                rem Install latest AWS CloudFormation Helper Scripts
-                start /wait c:\Windows\system32\msiexec /passive /qn /i https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-win64-latest.msi
+                  rem Install latest AWS CloudFormation Helper Scripts
+                  start /wait c:\Windows\system32\msiexec /passive /qn /i https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-win64-latest.msi
 
-                rem Download and run the latest Amazon SSM Agent setup
-                powershell.exe -Command "iwr https://${QSS3Region}.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/windows_amd64/AmazonSSMAgentSetup.exe -UseBasicParsing -OutFile C:\AmazonSSMAgentSetup.exe"
-                start /wait C:\AmazonSSMAgentSetup.exe /install /quiet
+                  rem Download and run the latest Amazon SSM Agent setup
+                  powershell.exe -Command "iwr https://${QSS3Region}.amazonaws.com/ec2-downloads-windows/SSMAgent/latest/windows_amd64/AmazonSSMAgentSetup.exe -UseBasicParsing -OutFile C:\AmazonSSMAgentSetup.exe"
+                  start /wait C:\AmazonSSMAgentSetup.exe /install /quiet
 
-                rem Run cfn-init helper to process AWS::CloudFormation::Init directives
-                cfn-init.exe -v -c config -s ${AWS::StackName} --resource ESInstanceLaunchTemplate --region ${AWS::Region}
+                  rem Run cfn-init helper to process AWS::CloudFormation::Init directives
+                  cfn-init.exe -v -c config -s ${AWS::StackName} --resource ESInstanceLaunchTemplate --region ${AWS::Region}
+
+                  rem Force a restart
+                  powershell.exe -Command "Restart-Computer"
+                  exit
+                )
+
+                rem Wait for cfn-init to finish all the steps
+                :loop
+                if not exist c:\cfn\log\Add-region-to-PAC.ps1.txt (
+                  timeout /t 5 /nobreak > NUL
+                  goto loop
+                )
+
+                rem Complete lifecycle action and start the region if launching into the asg
+                powershell.exe -Command "&{" ^
+                  "$INSTANCE_ID = curl.exe -s http://169.254.169.254/latest/meta-data/instance-id;" ^
+                  "$STATE = (Get-ASAutoScalingInstance -InstanceId $INSTANCE_ID).LifecycleState;" ^
+                  "if ($STATE -eq 'Pending:Wait' -or $STATE -eq 'Pending') {" ^
+                    "$mfdsSvc = Get-Service mf_CCITCP2;" ^
+                    "$mfdsStatus = $svc.Status;" ^
+                    "while ($mfdsStatus -ne 'Running') {" ^
+                      "Start-Sleep 1;" ^
+                      "$mfdsSvc = Get-Service mf_CCITCP2;" ^
+                      "$mfdsStatus = $mfdsSvc.Status;" ^
+                    "}" ^
+
+                    "curl.exe localhost:10004;" ^
+                    "while ($lastexitcode -ne '0') {" ^
+                      "Start-Sleep 1;" ^
+                      "curl.exe localhost:10004;" ^
+                    "}" ^
+
+                    "& 'C:\Program Files (x86)\Micro Focus\Enterprise Server\bin\casstart.exe' -rBNKDM -w;" ^
+                  "}" ^
+
+                  "while ($STATE -ne 'Pending:Wait' -and $STATE -ne 'Warmed:Pending:Wait') {" ^
+                    "Start-Sleep 1;" ^
+                    "$STATE = (Get-ASAutoScalingInstance -InstanceId $INSTANCE_ID).LifecycleState;" ^
+                  "}" ^
+                  "Complete-ASLifecycleAction -InstanceId $INSTANCE_ID -LifecycleHookName launch_hook -AutoScalingGroupName es_asg -LifecycleActionResult CONTINUE;" ^
+                "}"
               </script>
+              <persist>true</persist>
             - QSS3Region: !If
                 - GovCloudCondition
                 - s3-us-gov-west-1
@@ -1129,7 +1160,7 @@ Resources:
         QSS3KeyPrefix: !Ref QSS3KeyPrefix
         RegionsPerInstance: !Ref RegionsPerInstance
         SubnetID: !Ref PrivateSubnet1AID
-  AddColdInstanceToASGLambdaFunction:
+  AddColdInstanceToASGAndCreateWarmPoolLambdaFunction:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: addColdInstanceToASG
@@ -1139,6 +1170,13 @@ Resources:
           autoscalingGroup: !Ref ESInstanceASG
       Code:
         ZipFile: |
+          import sys
+          from pip._internal import main
+
+          # Update boto3 (current version does not have put_warm_pool)
+          main(['install', '-I', '-q', 'boto3', '--target', '/tmp/', '--no-cache-dir', '--disable-pip-version-check'])
+          sys.path.insert(0,'/tmp/')
+
           import os, boto3, json
           import cfnresponse
 
@@ -1161,6 +1199,12 @@ Resources:
                       MinSize=2
                   )
                   print(response)
+
+                  response = client.put_warm_pool(
+                      AutoScalingGroupName=os.environ['autoscalingGroup'],
+                      PoolState="Stopped"
+                  )
+                  print(response)
               elif event['RequestType'] == 'Delete':
                   string = """curl -H 'Content-Type: ''' -X PUT -d '{{
                       "Status": "SUCCESS", "PhysicalResourceId": "{}", "StackId": "{}",
@@ -1173,7 +1217,6 @@ Resources:
               responseData = {}
               responseData['Data'] = response
               cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)
-
       Handler: index.handler
       Role: !GetAtt LambdaExecutionAutoScalingRole.Arn
       Runtime: python3.7
@@ -1182,7 +1225,7 @@ Resources:
     Type: AWS::CloudFormation::CustomResource
     Version: "1.0"
     Properties:
-      ServiceToken: !GetAtt AddColdInstanceToASGLambdaFunction.Arn
+      ServiceToken: !GetAtt AddColdInstanceToASGAndCreateWarmPoolLambdaFunction.Arn
   LambdaExecutionAutoScalingRole:
     Type: 'AWS::IAM::Role'
     Properties:
@@ -1209,6 +1252,7 @@ Resources:
   ESInstanceASG:
     Type: 'AWS::AutoScaling::AutoScalingGroup'
     Properties:
+      AutoScalingGroupName: es_asg
       AvailabilityZones: !Ref AvailabilityZones
       VPCZoneIdentifier:
         - !Ref PrivateSubnet1AID
@@ -1242,12 +1286,20 @@ Resources:
           Statistic: Average
         TargetValue: 1
   # Lifecycle Stuff ###################################################
+  LaunchHook:
+    Type: AWS::AutoScaling::LifecycleHook
+    Properties:
+      LifecycleHookName: launch_hook
+      AutoScalingGroupName: !Ref ESInstanceASG
+      DefaultResult: ABANDON
+      HeartbeatTimeout: 1800
+      LifecycleTransition: autoscaling:EC2_INSTANCE_LAUNCHING
   TerminationHook:
     Type: AWS::AutoScaling::LifecycleHook
     Properties:
       AutoScalingGroupName: !Ref ESInstanceASG
       DefaultResult: CONTINUE
-      HeartbeatTimeout: 900
+      HeartbeatTimeout: 300
       LifecycleTransition: autoscaling:EC2_INSTANCE_TERMINATING
   TerminationDocument:
     Type: AWS::SSM::Document
@@ -1270,7 +1322,6 @@ Resources:
               Parameters:
                 commands:
                   - "& 'C:\\Program Files (x86)\\Micro Focus\\Enterprise Server\\bin\\casstop.exe' -lBNKDM -w60"
-                executionTimeout: '900'
           - name: TerminateInstance
             action: aws:executeAwsApi
             inputs:

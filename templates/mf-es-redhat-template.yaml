@@ -375,6 +375,16 @@ Resources:
                 Effect: Allow
                 Resource: '*'
           PolicyName: ESInstancePolicy
+        - PolicyDocument:
+            Statement:
+              - Action: "autoscaling:CompleteLifecycleAction"
+                Effect: "Allow"
+                Resource: !Sub "arn:aws:autoscaling:${AWS::Region}:${AWS::AccountId}:autoScalingGroup:*:autoScalingGroupName/es_asg"
+              - Action: "autoscaling:DescribeAutoScalingInstances"
+                Effect: "Allow"
+                Resource: '*'
+            Version: 2012-10-17
+          PolicyName: AutoscalingPolicy
   ESInstanceRoleProfile:
     Type: 'AWS::IAM::InstanceProfile'
     Properties:
@@ -439,7 +449,6 @@ Resources:
               - 000-NoOperation
             - 030-Setup-PAC-Database-Envrionment
             - 040-InstallBankDemoPAC
-            - 050-StartBNKDM
         000-NoOperation:
           commands:
             a-no-operation:
@@ -556,23 +565,6 @@ Resources:
               command:
                 ./tmp/Add-region-to-PAC.sh BNKDM
               waitAfterCompletion: '0'
-        050-StartBNKDM:
-          files:
-            '/tmp/Start-Region.sh':
-              source: !Sub
-                - >-
-                  https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}scripts/Start-Region.sh
-                - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
-                  S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
-              mode: 000550
-              owner: root
-              group: root
-              authentication: S3AccessCreds
-          commands:
-            a-StartBNKDM:
-              command:
-                ./tmp/Start-Region.sh BNKDM 64 w 180
-              waitAfterCompletion: '0'
     Properties:
       LaunchTemplateName: "ESInstanceLaunchTemplate"
       LaunchTemplateData:
@@ -603,36 +595,99 @@ Resources:
                 Value: !Sub '${AWS::StackName}-ESSERVER-WARM Data Volume'
         UserData:
           Fn::Base64: !Sub |
+            Content-Type: multipart/mixed; boundary="//"
+            MIME-Version: 1.0
+
+            --//
+            Content-Type: text/cloud-config; charset="us-ascii"
+            MIME-Version: 1.0
+            Content-Transfer-Encoding: 7bit
+            Content-Disposition: attachment; filename="cloud-config.txt"
+
+            #cloud-config
+            cloud_final_modules:
+            - [scripts-user, always]
+
+            --//
+            Content-Type: text/x-shellscript; charset="us-ascii"
+            MIME-Version: 1.0
+            Content-Transfer-Encoding: 7bit
+            Content-Disposition: attachment; filename="userdata.txt"
+
             #!/bin/bash -xe
             exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
 
-            while ! rpm -Uvh https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+            INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
+
+            if [ ! -s /var/log/Add-region-to-PAC.log ]
+            then
+                while ! rpm -Uvh https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+                do
+                    sleep 1
+                done
+
+                while ! yum -y install python-pip
+                do
+                    sleep 1
+                done
+
+                while ! /bin/easy_install --script-dir /opt/aws/bin https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz
+                do
+                    sleep 1
+                done
+
+                while ! yum install -y https://s3.${AWS::Region}.amazonaws.com/amazon-ssm-${AWS::Region}/latest/linux_amd64/amazon-ssm-agent.rpm
+                do
+                    sleep 1
+                done
+
+                while ! yum -y install unzip
+                do
+                    sleep 1
+                done
+
+                while ! curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "/tmp/awscliv2.zip"
+                do
+                    sleep 1
+                done
+                unzip -q /tmp/awscliv2.zip -d /tmp/
+                /tmp/aws/install
+
+                cp -f `pip show aws-cfn-bootstrap 2>/dev/null|grep -E "^Location"|awk -F: '{print $2}'`/init/redhat/cfn-hup /etc/init.d/
+
+                chmod 755 /etc/init.d/cfn-hup
+                chkconfig --add cfn-hup
+
+                /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource ESInstanceLaunchTemplate --configsets config --region ${AWS::Region}
+            fi
+
+            STATE=$(aws autoscaling describe-auto-scaling-instances --instance-ids $INSTANCE_ID --query "AutoScalingInstances[].LifecycleState" --output text)
+            if [[ $STATE = "Pending:Wait" ]] || [[ $STATE = "Pending" ]]
+            then
+                source /opt/microfocus/EnterpriseDeveloper/bin/cobsetenv
+
+                nohup mfds &>/dev/null &
+                while ! mdump -a localhost -p 86 -s 1 -v 2 > nul
+                do
+                    sleep 1
+                done
+
+                nohup escwa --BasicConfig.MfRequestedEndpoint="tcp:*:10004" --write=true < /dev/null > /tmp/escwa.out 2>&1 &
+                while ! curl http://localhost:10004
+                do
+                    sleep 1
+                done
+
+                casstart -rBNKDM -w
+            fi
+
+            while [[ $STATE != "Pending:Wait" ]] && [[ $STATE != "Warmed:Pending:Wait" ]]
             do
               sleep 1
+              STATE=$(aws autoscaling describe-auto-scaling-instances --instance-ids $INSTANCE_ID --query "AutoScalingInstances[].LifecycleState" --output text)
             done
 
-            while ! yum -y install python-pip
-            do
-              sleep 1
-            done
-
-            while ! /bin/easy_install --script-dir /opt/aws/bin https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz
-            do
-              sleep 1
-            done
-
-            while ! yum install -y https://s3.${AWS::Region}.amazonaws.com/amazon-ssm-${AWS::Region}/latest/linux_amd64/amazon-ssm-agent.rpm
-            do
-              sleep 1
-            done
-
-            cp -f `pip show aws-cfn-bootstrap 2>/dev/null|grep -E "^Location"|awk -F: '{print $2}'`/init/redhat/cfn-hup /etc/init.d/
-
-            chmod 755 /etc/init.d/cfn-hup
-            chkconfig --add cfn-hup
-
-            /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource ESInstanceLaunchTemplate --configsets config --region ${AWS::Region}
-            /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource ESInstanceASG --region ${AWS::Region}
+            aws autoscaling complete-lifecycle-action --lifecycle-action-result CONTINUE --instance-id $INSTANCE_ID --lifecycle-hook-name launch_hook --auto-scaling-group-name es_asg  --region ${AWS::Region}
   ESInstanceColdStack:
     Type: 'AWS::CloudFormation::Stack'
     Properties:
@@ -661,7 +716,7 @@ Resources:
         QSS3KeyPrefix: !Ref QSS3KeyPrefix
         RegionsPerInstance: !Ref RegionsPerInstance
         SubnetID: !Ref PrivateSubnet1AID
-  AddColdInstanceToASGLambdaFunction:
+  AddColdInstanceToASGAndCreateWarmPoolLambdaFunction:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: addColdInstanceToASG
@@ -671,6 +726,13 @@ Resources:
           autoscalingGroup: !Ref ESInstanceASG
       Code:
         ZipFile: |
+          import sys
+          from pip._internal import main
+
+          # Update boto3 (current version does not have put_warm_pool)
+          main(['install', '-I', '-q', 'boto3', '--target', '/tmp/', '--no-cache-dir', '--disable-pip-version-check'])
+          sys.path.insert(0,'/tmp/')
+
           import os, boto3, json
           import cfnresponse
 
@@ -693,6 +755,12 @@ Resources:
                       MinSize=2
                   )
                   print(response)
+
+                  response = client.put_warm_pool(
+                      AutoScalingGroupName=os.environ['autoscalingGroup'],
+                      PoolState="Stopped"
+                  )
+                  print(response)
               elif event['RequestType'] == 'Delete':
                   string = """curl -H 'Content-Type: ''' -X PUT -d '{{
                       "Status": "SUCCESS", "PhysicalResourceId": "{}", "StackId": "{}",
@@ -705,7 +773,6 @@ Resources:
               responseData = {}
               responseData['Data'] = response
               cfnresponse.send(event, context, cfnresponse.SUCCESS, responseData)
-
       Handler: index.handler
       Role: !GetAtt LambdaExecutionAutoScalingRole.Arn
       Runtime: python3.7
@@ -714,7 +781,7 @@ Resources:
     Type: AWS::CloudFormation::CustomResource
     Version: "1.0"
     Properties:
-      ServiceToken: !GetAtt AddColdInstanceToASGLambdaFunction.Arn
+      ServiceToken: !GetAtt AddColdInstanceToASGAndCreateWarmPoolLambdaFunction.Arn
   LambdaExecutionAutoScalingRole:
     Type: 'AWS::IAM::Role'
     Properties:
@@ -741,6 +808,7 @@ Resources:
   ESInstanceASG:
     Type: 'AWS::AutoScaling::AutoScalingGroup'
     Properties:
+      AutoScalingGroupName: es_asg
       AvailabilityZones: !Ref AvailabilityZones
       VPCZoneIdentifier:
         - !Ref PrivateSubnet1AID
@@ -774,12 +842,20 @@ Resources:
           Statistic: Average
         TargetValue: 1
   # Lifecycle Stuff ###################################################
+  LaunchHook:
+    Type: AWS::AutoScaling::LifecycleHook
+    Properties:
+      LifecycleHookName: launch_hook
+      AutoScalingGroupName: !Ref ESInstanceASG
+      DefaultResult: ABANDON
+      HeartbeatTimeout: 1800
+      LifecycleTransition: autoscaling:EC2_INSTANCE_LAUNCHING
   TerminationHook:
     Type: AWS::AutoScaling::LifecycleHook
     Properties:
       AutoScalingGroupName: !Ref ESInstanceASG
       DefaultResult: CONTINUE
-      HeartbeatTimeout: 900
+      HeartbeatTimeout: 300
       LifecycleTransition: autoscaling:EC2_INSTANCE_TERMINATING
   TerminationDocument:
     Type: AWS::SSM::Document
@@ -803,7 +879,6 @@ Resources:
                 commands: |
                   source /opt/microfocus/EnterpriseDeveloper/bin/cobsetenv
                   casstop -lBNKDM -w60
-                executionTimeout: '900'
           - name: TerminateInstance
             action: aws:executeAwsApi
             inputs:
