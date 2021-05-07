@@ -198,8 +198,8 @@ ScriptType=14
 Path=C:\Users\Public\LoadRunner Example\Scripts\Calculate_Loan_Cost\Calculate_Loan_Cost.usr
 EmulatedLocation=None
 NVAnalytics=0
-Config=[General]\r\nAutomaticTransactions=1\r\nAutomaticTransactionsPerFunc=0\r\nContinueOnError=0\r\nDefaultRunLogic=usp7kT.340\r\nFailTransOnErrorMsg=0\r\nReplay64bit=0\r\nUseThreads=1\r\nXlBridgeTimeout=120\r\n[Iterations]\r\nIterationPace=IterationASAP\r\nNumOfIterations=1\r\nRandomMax=90\r\nRandomMin=60\r\nStartEvery=60\r\n[Log]\r\nAutoLog=1\r\nAutoLogBufferSize=1\r\nIncludeEnvInfo=1\r\nLogDetail=0\r\nLogOptions=LogBrief\r\nMsgClassData=0\r\nMsgClassFull=0\r\nMsgClassParameters=0\r\nPrintTimeStamp=0\r\n[RTE]\r\nRteCharSet=ANSI\r\n[ThinkTime]\r\nFactor=1\r\nLimit=1\r\nLimitFlag=0\r\nOptions=RANDOM\r\nThinkTimeRandomHigh=150\r\nThinkTimeRandomLow=50\r\n[WEB]\r\nSnapshotOnErrorActive=0\r\n
-ConfigUsp=[Profile Actions]\r\nMercIniTreeFather=\r\nMercIniTreeSectionName=Profile Actions\r\nProfile Actions name=vuser_init,Action,vuser_end\r\n[RunLogicEndRoot]\r\nMercIniTreeFather=\r\nMercIniTreeSectionName=RunLogicEndRoot\r\nMercIniTreeSons=vuser_end\r\nName=End\r\nRunLogicActionOrder=vuser_end\r\nRunLogicActionType=VuserEnd\r\nRunLogicNumOfIterations=1\r\nRunLogicObjectKind=Group\r\nRunLogicRunMode=Sequential\r\n[RunLogicEndRoot:vuser_end]\r\nMercIniTreeFather=RunLogicEndRoot\r\nMercIniTreeSectionName=vuser_end\r\nName=vuser_end\r\nRunLogicActionType=VuserEnd\r\nRunLogicObjectKind=Action\r\n[RunLogicInitRoot]\r\nMercIniTreeFather=\r\nMercIniTreeSectionName=RunLogicInitRoot\r\nMercIniTreeSons=vuser_init\r\nName=Init\r\nRunLogicActionOrder=vuser_init\r\nRunLogicActionType=VuserInit\r\nRunLogicNumOfIterations=1\r\nRunLogicObjectKind=Group\r\nRunLogicRunMode=Sequential\r\n[RunLogicInitRoot:vuser_init]\r\nMercIniTreeFather=RunLogicInitRoot\r\nMercIniTreeSectionName=vuser_init\r\nName=vuser_init\r\nRunLogicActionType=VuserInit\r\nRunLogicObjectKind=Action\r\n[RunLogicRunRoot]\r\nMercIniTreeFather=\r\nMercIniTreeSectionName=RunLogicRunRoot\r\nMercIniTreeSons=Action\r\nName=Run\r\nRunLogicActionOrder=Action\r\nRunLogicActionType=VuserRun\r\nRunLogicAfterPaceMax=90\r\nRunLogicAfterPaceMin=60\r\nRunLogicNumOfIterations=1\r\nRunLogicObjectKind=Group\r\nRunLogicPaceConstAfterTime=60\r\nRunLogicPaceConstTime=60\r\nRunLogicPaceType=After\r\nRunLogicRandomPaceMax=90\r\nRunLogicRandomPaceMin=60\r\nRunLogicRunMode=Sequential\r\n[RunLogicRunRoot:Action]\r\nMercIniTreeFather=RunLogicRunRoot\r\nMercIniTreeSectionName=Action\r\nName=Action\r\nRunLogicActionType=VuserRun\r\nRunLogicObjectKind=Action\r\n
+Config=[General]\r\nAutomaticTransactions=1\r\nAutomaticTransactionsPerFunc=0\r\nContinueOnError=0\r\nDefaultRunLogic=usps9A.199\r\nFailTransOnErrorMsg=0\r\nReplay64bit=0\r\nUseThreads=1\r\nXlBridgeTimeout=120\r\n[Iterations]\r\nIterationPace=IterationASAP\r\nNumOfIterations=1\r\nRandomMax=90\r\nRandomMin=60\r\nStartEvery=60\r\n[Log]\r\nAutoLog=1\r\nAutoLogBufferSize=1\r\nIncludeEnvInfo=1\r\nLogDetail=0\r\nLogOptions=LogBrief\r\nMsgClassData=0\r\nMsgClassFull=0\r\nMsgClassParameters=0\r\nPrintTimeStamp=0\r\n[RTE]\r\nRteCharSet=ANSI\r\n[RtsConfigfuration]\r\nAUTMode=1\r\n[ThinkTime]\r\nFactor=1\r\nLimit=1\r\nLimitFlag=0\r\nOptions=NOTHINK\r\nThinkTimeRandomHigh=150\r\nThinkTimeRandomLow=50\r\n[WEB]\r\nSnapshotOnErrorActive=0\r\n
+ConfigUsp=[Profile Actions]\r\nMercIniTreeFather=\r\nMercIniTreeSectionName=Profile Actions\r\nProfile Actions name=vuser_init,Action,vuser_end\r\n[RunLogicEndRoot]\r\nMercIniTreeFather=\r\nMercIniTreeSectionName=RunLogicEndRoot\r\nMercIniTreeSons=vuser_end\r\nName=End\r\nRunLogicActionOrder=vuser_end\r\nRunLogicActionType=VuserEnd\r\nRunLogicNumOfIterations=1\r\nRunLogicObjectKind=Group\r\nRunLogicRunMode=Sequential\r\n[RunLogicEndRoot:vuser_end]\r\nMercIniTreeFather=RunLogicEndRoot\r\nMercIniTreeSectionName=vuser_end\r\nName=vuser_end\r\nRunLogicActionType=VuserEnd\r\nRunLogicObjectKind=Action\r\n[RunLogicInitRoot]\r\nMercIniTreeFather=\r\nMercIniTreeSectionName=RunLogicInitRoot\r\nMercIniTreeSons=vuser_init\r\nName=Init\r\nRunLogicActionOrder=vuser_init\r\nRunLogicActionType=VuserInit\r\nRunLogicNumOfIterations=1\r\nRunLogicObjectKind=Group\r\nRunLogicRunMode=Sequential\r\n[RunLogicInitRoot:vuser_init]\r\nMercIniTreeFather=RunLogicInitRoot\r\nMercIniTreeSectionName=vuser_init\r\nName=vuser_init\r\nRunLogicActionType=VuserInit\r\nRunLogicObjectKind=Action\r\n[RunLogicRunRoot]\r\nMercIniTreeFather=\r\nMercIniTreeSectionName=RunLogicRunRoot\r\nMercIniTreeSons=Action\r\nName=Run\r\nRunLogicActionOrder=Action\r\nRunLogicActionType=VuserRun\r\nRunLogicAfterPaceMax=90\r\nRunLogicAfterPaceMin=60\r\nRunLogicNumOfIterations=1\r\nRunLogicObjectKind=Group\r\nRunLogicPaceConstAfterTime=60\r\nRunLogicPaceConstTime=60\r\nRunLogicPaceType=Asap\r\nRunLogicRandomPaceMax=90\r\nRunLogicRandomPaceMin=60\r\nRunLogicRunMode=Sequential\r\n[RunLogicRunRoot:Action]\r\nMercIniTreeFather=RunLogicRunRoot\r\nMercIniTreeSectionName=Action\r\nName=Action\r\nRunLogicActionType=VuserRun\r\nRunLogicObjectKind=Action\r\n
 Param=
 TDPath=
 TDServer=
@@ -803,15 +803,7 @@ OverlayGraph=0
 Auto_Y_Scale=1
 DefaultMsrAutoScale=0
 Granularities=-1
-MeasurementCount=4
-Measurement_0=|||16|||0|||1|||Not_In_Use|||0|||-1|||es_tr_runtime_vusers
-MeasurementFullPath_0="Running"
-Measurement_1=|||27|||0|||1|||Not_In_Use|||0|||-1|||es_tr_runtime_vusers
-MeasurementFullPath_1="Ready"
-Measurement_2=|||23|||0|||1|||Not_In_Use|||0|||-1|||es_tr_runtime_vusers
-MeasurementFullPath_2="Finished"
-Measurement_3=|||13|||0|||1|||Not_In_Use|||0|||-1|||es_tr_runtime_vusers
-MeasurementFullPath_3="Error"
+MeasurementCount=0
 Description=Displays the number of Vusers that executed Vuser scripts, and their status, during each second of a load test. This graph is useful for determining the Vuser load on your server at any given moment.
 [7]
 MeasurementsDelimiter=|||
@@ -889,9 +881,7 @@ OverlayGraph=0
 Auto_Y_Scale=1
 DefaultMsrAutoScale=0
 Granularities=-1
-MeasurementCount=1
-Measurement_0=|||29|||0|||1|||Not_In_Use|||0|||-1|||es_tr_errors_distribution
-MeasurementFullPath_0="calculate_loan_cost_1:Action:5"
+MeasurementCount=0
 Description=Displays details about the number of errors that accrue during each second of the scenario or session step run.
 [9]
 MeasurementsDelimiter=|||
@@ -930,9 +920,7 @@ OverlayGraph=0
 Auto_Y_Scale=1
 DefaultMsrAutoScale=0
 Granularities=-1
-MeasurementCount=1
-Measurement_0=|||25|||0|||1|||Not_In_Use|||0|||-1|||es_tr_vusers_errors_distribution
-MeasurementFullPath_0="calculate_loan_cost_1:Action:5"
+MeasurementCount=0
 Description=Displays details about the number of Vusers that generate errors during scenario or session step execution.
 [10]
 MeasurementsDelimiter=|||
@@ -1127,13 +1115,7 @@ OverlayGraph=0
 Auto_Y_Scale=1
 DefaultMsrAutoScale=0
 Granularities=-1
-MeasurementCount=3
-Measurement_0=|||13|||0|||1|||Not_In_Use|||0|||-1|||es_tr_response_time
-MeasurementFullPath_0="vuser_init_Transaction"
-Measurement_1=|||23|||0|||1|||Not_In_Use|||0|||-1|||es_tr_response_time
-MeasurementFullPath_1="Action_Transaction"
-Measurement_2=|||19|||0|||1|||Not_In_Use|||0|||-1|||es_tr_response_time
-MeasurementFullPath_2="vuser_end_Transaction"
+MeasurementCount=0
 Description=Displays the average time taken to perform transactions during each second of the load test. This graph helps you determine whether the performance of the server is within acceptable minimum and maximum transaction performance time ranges defined for your system.
 [15]
 MeasurementsDelimiter=|||
@@ -1211,13 +1193,7 @@ OverlayGraph=0
 Auto_Y_Scale=1
 DefaultMsrAutoScale=0
 Granularities=-1
-MeasurementCount=3
-Measurement_0=|||7|||0|||1|||Not_In_Use|||0|||-1|||es_tr_tprange_pass
-MeasurementFullPath_0="vuser_init_Transaction"
-Measurement_1=|||4|||0|||1|||Not_In_Use|||0|||-1|||es_tr_tprange_pass
-MeasurementFullPath_1="Action_Transaction"
-Measurement_2=|||17|||0|||1|||Not_In_Use|||0|||-1|||es_tr_tprange_pass
-MeasurementFullPath_2="vuser_end_Transaction"
+MeasurementCount=0
 Description=Displays the number of successful transactions performed during each second of a load test. This graph helps you determine the actual transaction load on your system at any given moment.
 [17]
 MeasurementsDelimiter=|||
@@ -1375,9 +1351,7 @@ OverlayGraph=0
 Auto_Y_Scale=1
 DefaultMsrAutoScale=0
 Granularities=-1
-MeasurementCount=1
-Measurement_0=|||16|||0|||1|||Not_In_Use|||0|||-1|||es_tr_aborted
-MeasurementFullPath_0="Action_Transaction"
+MeasurementCount=0
 Description=Displays the number of aborted transactions performed during each second of a load test.
 [21]
 MeasurementsDelimiter=|||
@@ -1417,9 +1391,7 @@ OverlayGraph=0
 Auto_Y_Scale=1
 DefaultMsrAutoScale=0
 Granularities=-1
-MeasurementCount=1
-Measurement_0=|||16|||0|||1|||Not_In_Use|||0|||-1|||es_tr_total_trpass
-MeasurementFullPath_0="Total Transactions per Second (Passed)"
+MeasurementCount=0
 Description=Displays the number of all transactions performed during each second of a load test.
 [22]
 MeasurementsDelimiter=|||
@@ -1459,13 +1431,7 @@ OverlayGraph=0
 Auto_Y_Scale=1
 DefaultMsrAutoScale=0
 Granularities=-1
-MeasurementCount=3
-Measurement_0=|||29|||0|||1|||Not_In_Use|||0|||-1|||es_tr_trpass
-MeasurementFullPath_0="vuser_init_Transaction"
-Measurement_1=|||4|||0|||1|||Not_In_Use|||0|||-1|||es_tr_trpass
-MeasurementFullPath_1="Action_Transaction"
-Measurement_2=|||25|||0|||1|||Not_In_Use|||0|||-1|||es_tr_trpass
-MeasurementFullPath_2="vuser_end_Transaction"
+MeasurementCount=0
 Description=Total Pass transaction graph
 [23]
 MeasurementsDelimiter=|||
@@ -1545,9 +1511,7 @@ OverlayGraph=0
 Auto_Y_Scale=1
 DefaultMsrAutoScale=0
 Granularities=-1
-MeasurementCount=1
-Measurement_0=|||30|||0|||1|||Not_In_Use|||0|||-1|||es_tr_traborted
-MeasurementFullPath_0="Action_Transaction"
+MeasurementCount=0
 Description=Total Stopped transactions graph
 [25]
 MeasurementsDelimiter=|||
@@ -4829,7 +4793,7 @@ MachinesCount=IntV1|0
 }
 
 {ScenarioDiagnostics
-XMLData=<Mediators distribution = "1" enabled= "1" ><Mediator type= "SARM" enabled= "0" ><Machine name = "" type = "Win2000" ><Connection><Firewall enabled="0" listener=""/></Connection></Machine><TOPOLOGY></TOPOLOGY></Mediator><Mediator type= "OracleDB" enabled= "0" ><Machine name = "" type = "Win2000" ><Connection><Firewall enabled="0" listener=""/></Connection></Machine><TOPOLOGY></TOPOLOGY></Mediator><Mediator type= "WebPage" enabled= "1" ></Mediator><Mediator type= "J2EE" enabled= "0" ></Mediator><Mediator type= "SiebelDB" enabled= "0" ><Machine name = "" type = "Win2000" ><Connection><Firewall enabled="0" listener=""/></Connection></Machine><TOPOLOGY></TOPOLOGY></Mediator><Mediator type="SAP" enabled="0"><Machine name="" type="Win2000"><Connection><Firewall enabled="0" listener=""/></Connection></Machine><TOPOLOGY><SERVER host="" instance="" RouterString=""><LOGIN username="" password="606c7678e" client_num=""/></SERVER></TOPOLOGY></Mediator></Mediators>
+XMLData=<Mediators distribution = "1" enabled= "1" ><Mediator type= "SARM" enabled= "0" ><Machine name = "" type = "Win2000" ><Connection><Firewall enabled="0" listener=""/></Connection></Machine><TOPOLOGY></TOPOLOGY></Mediator><Mediator type= "OracleDB" enabled= "0" ><Machine name = "" type = "Win2000" ><Connection><Firewall enabled="0" listener=""/></Connection></Machine><TOPOLOGY></TOPOLOGY></Mediator><Mediator type= "WebPage" enabled= "1" ></Mediator><Mediator type= "J2EE" enabled= "0" ></Mediator><Mediator type= "SiebelDB" enabled= "0" ><Machine name = "" type = "Win2000" ><Connection><Firewall enabled="0" listener=""/></Connection></Machine><TOPOLOGY></TOPOLOGY></Mediator><Mediator type="SAP" enabled="0"><Machine name="" type="Win2000"><Connection><Firewall enabled="0" listener=""/></Connection></Machine><TOPOLOGY><SERVER host="" instance="" RouterString=""><LOGIN username="" password="60916b7fe" client_num=""/></SERVER></TOPOLOGY></Mediator></Mediators>
 }
 
 {ScenarioSchedulerConfig
@@ -4858,8 +4822,8 @@ XMLData=<Mediators distribution = "1" enabled= "1" ><Mediator type= "SARM" enabl
                   <PrevAction />
                 </StartCondition>
                 <Batch>
-                  <Count>2</Count>
-                  <Interval>15</Interval>
+                  <Count>10</Count>
+                  <Interval>10</Interval>
                 </Batch>
                 <TotalVusersNumber>50</TotalVusersNumber>
               </RampUp>
