@@ -331,39 +331,42 @@ Rules:
 Mappings:
   AWSAMIRegionMap:
     AMI:
-      MFES40AMI: ES_60_PU01
-    ap-northeast-1:
-      MFES40AMI: ami-0bae6d1d03ad5c38c
-    ap-northeast-2:
-      MFES40AMI: ami-080a4712b1e7350ed
-    ap-south-1:
-      MFES40AMI: ami-0f2b2823ac1d8f95d
-    ap-southeast-1:
-      MFES40AMI: ami-0065e05aaecced65a
-    ap-southeast-2:
-      MFES40AMI:  ami-0de81adc57c6df12a
-    ca-central-1:
-      MFES40AMI: ami-0c4ea4d6fba07f0ee
-    eu-central-1:
-      MFES40AMI: ami-08dde1e820f9f5ef9
-    eu-north-1:
-      MFES40AMI: ami-0e2813f8efc423d3f
+      MFES70AMI: ES_70_WIN_19_BNKDM
+    # ap-northeast-1:
+    #   MFES40AMI: ami-0bae6d1d03ad5c38c
+    # ap-northeast-2:
+    #   MFES40AMI: ami-080a4712b1e7350ed
+    # ap-south-1:
+    #   MFES40AMI: ami-0f2b2823ac1d8f95d
+    # ap-southeast-1:
+    #   MFES40AMI: ami-0065e05aaecced65a
+    # ap-southeast-2:
+    #   MFES40AMI:  ami-0de81adc57c6df12a
+    # ca-central-1:
+    #   MFES40AMI: ami-0c4ea4d6fba07f0ee
+    # eu-central-1:
+    #   MFES40AMI: ami-08dde1e820f9f5ef9
+    # eu-north-1:
+    #   MFES40AMI: ami-0e2813f8efc423d3f
     eu-west-1:
-      MFES40AMI: ami-0be7439f5e8e1c577
+      # MFES40AMI: ami-0be7439f5e8e1c577
+      MFES70AMI: ami-0c206e1b04404606c
     eu-west-2:
-      MFES40AMI: ami-001842da48968696d
-    eu-west-3:
-      MFES40AMI: ami-0c479b1af672abf62
-    sa-east-1:
-      MFES40AMI: ami-08d30d58645251f63
+      # MFES40AMI: ami-001842da48968696d
+      MFES70AMI: ami-09038ffb8f2379731
+    # eu-west-3:
+    #   MFES40AMI: ami-0c479b1af672abf62
+    # sa-east-1:
+    #   MFES40AMI: ami-08d30d58645251f63
     us-east-1:
-      MFES40AMI: ami-0f308ab79b6c2d1e8
-    us-east-2:
-      MFES40AMI: ami-0b0fcb621219073d3
-    us-west-1:
-      MFES40AMI: ami-01d36394b9ba7bc6b
-    us-west-2:
-      MFES40AMI: ami-0526b4845e872052b
+      # MFES40AMI: ami-0f308ab79b6c2d1e8
+      MFES70AMI: ami-0596de6192c5e2d1f
+    # us-east-2:
+    #   MFES40AMI: ami-0b0fcb621219073d3
+    # us-west-1:
+    #   MFES40AMI: ami-01d36394b9ba7bc6b
+    # us-west-2:
+    #   MFES40AMI: ami-0526b4845e872052b
 Conditions:
   UsingDefaultBucket: !Equals [!Ref QSS3BucketName, 'aws-quickstart']
   GovCloudCondition: !Equals
@@ -801,12 +804,12 @@ Resources:
                 powershell.exe
                   -Command New-NetFirewallRule
                     -DisplayName 'Micro Focus Enterprise Server Admin Portal'
-                    -LocalPort 10004
+                    -LocalPort 10086
                     -Protocol tcp
               waitAfterCompletion: '0'
         050-ApplyESLicenseFile:
           files:
-            'd:\esdir\Enterprise-Server.mflic':
+            'c:\esdir\Enterprise-Server.mflic':
               source: !Sub
                 - >-
                   https://${ESS3BucketName}.${QSS3Region}.amazonaws.com/license/${ESLicenseFilename}
@@ -824,12 +827,12 @@ Resources:
               authentication: S3AccessCreds
           commands:
             a-install-license:
-              cwd: 'C:\Program Files (x86)\Common Files\SafeNet Sentinel\Sentinel RMS License Manager\WinNT\'
+              cwd: 'C:\Program Files (x86)\Micro Focus\Licensing\'
               command:
                 start /wait
                   cesadmintool
                     -term install
-                    -f d:\esdir\Enterprise-Server.mflic
+                    -f c:\esdir\Enterprise-Server.mflic
               waitAfterCompletion: '0'
             b-set-MFDS-listen-all:
               command:
@@ -1053,7 +1056,7 @@ Resources:
         ImageId: !FindInMap
           - AWSAMIRegionMap
           - !Ref 'AWS::Region'
-          - MFES40AMI
+          - MFES70AMI
         TagSpecifications:
           - ResourceType: instance
             Tags:
@@ -1107,10 +1110,10 @@ Resources:
                       "$mfdsStatus = $mfdsSvc.Status;" ^
                     "}" ^
 
-                    "curl.exe localhost:10004;" ^
+                    "curl.exe localhost:10086;" ^
                     "while ($lastexitcode -ne '0') {" ^
                       "Start-Sleep 1;" ^
-                      "curl.exe localhost:10004;" ^
+                      "curl.exe localhost:10086;" ^
                     "}" ^
 
                     "& 'C:\Program Files (x86)\Micro Focus\Enterprise Server\bin\casstart.exe' -rBNKDM -w;" ^
@@ -1277,14 +1280,14 @@ Resources:
     Type: AWS::AutoScaling::ScalingPolicy
     Properties:
       AutoScalingGroupName: !Ref ESInstanceASG
-      EstimatedInstanceWarmup: 1800  # 30 minutes
+      EstimatedInstanceWarmup: 180
       PolicyType: TargetTrackingScaling
       TargetTrackingConfiguration:
         CustomizedMetricSpecification:
           MetricName: avg-tasks-per-second
           Namespace: !Ref MetricsNamespace
           Statistic: Average
-        TargetValue: 1
+        TargetValue: 10
   # Lifecycle Stuff ###################################################
   LaunchHook:
     Type: AWS::AutoScaling::LifecycleHook

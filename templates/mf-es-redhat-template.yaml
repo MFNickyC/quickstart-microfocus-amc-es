@@ -631,7 +631,12 @@ Resources:
                     sleep 1
                 done
 
-                while ! /bin/easy_install --script-dir /opt/aws/bin https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz
+                while ! yum -y install install python36
+                do
+                    sleep 1
+                done
+
+                while ! /bin/easy_install-3.6 --script-dir /opt/aws/bin https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-py3-latest.tar.gz
                 do
                     sleep 1
                 done
@@ -653,7 +658,7 @@ Resources:
                 unzip -q /tmp/awscliv2.zip -d /tmp/
                 /tmp/aws/install
 
-                cp -f `pip show aws-cfn-bootstrap 2>/dev/null|grep -E "^Location"|awk -F: '{print $2}'`/init/redhat/cfn-hup /etc/init.d/
+                cp -f `pip3 show aws-cfn-bootstrap 2>/dev/null|grep -E "^Location"|awk -F: '{print $2}'`/init/redhat/cfn-hup /etc/init.d/
 
                 chmod 755 /etc/init.d/cfn-hup
                 chkconfig --add cfn-hup
@@ -672,8 +677,8 @@ Resources:
                     sleep 1
                 done
 
-                nohup escwa --BasicConfig.MfRequestedEndpoint="tcp:*:10004" --write=true < /dev/null > /tmp/escwa.out 2>&1 &
-                while ! curl http://localhost:10004
+                nohup escwa --BasicConfig.MfRequestedEndpoint="tcp:*:10086" --write=true < /dev/null > /tmp/escwa.out 2>&1 &
+                while ! curl http://localhost:10086
                 do
                     sleep 1
                 done
@@ -833,7 +838,7 @@ Resources:
     Type: AWS::AutoScaling::ScalingPolicy
     Properties:
       AutoScalingGroupName: !Ref ESInstanceASG
-      EstimatedInstanceWarmup: 1800  # 30 minutes
+      EstimatedInstanceWarmup: 180
       PolicyType: TargetTrackingScaling
       TargetTrackingConfiguration:
         CustomizedMetricSpecification:

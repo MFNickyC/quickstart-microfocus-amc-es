@@ -840,8 +840,8 @@ Resources:
           CidrIp: !Ref VPCCIDR
         - Description: ESCWA
           IpProtocol: tcp
-          FromPort: 10004
-          ToPort: 10004
+          FromPort: 10086
+          ToPort: 10086
           CidrIp: !Ref VPCCIDR
         - Description: ElastiCache-Redis
           IpProtocol: tcp

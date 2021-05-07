@@ -399,7 +399,7 @@ Resources:
     CreationPolicy:
       ResourceSignal:
         Count: 1
-        Timeout: PT20M
+        Timeout: PT30M
     Metadata:
       'AWS::CloudFormation::Authentication':
         S3AccessCreds:
@@ -604,7 +604,12 @@ Resources:
             sleep 1
           done
 
-          while ! /bin/easy_install --script-dir /opt/aws/bin https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz
+          while ! yum -y install install python36
+          do
+              sleep 1
+          done
+
+          while ! /bin/easy_install-3.6 --script-dir /opt/aws/bin https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-py3-latest.tar.gz
           do
             sleep 1
           done
@@ -614,7 +619,7 @@ Resources:
             sleep 1
           done
 
-          cp -f `pip show aws-cfn-bootstrap 2>/dev/null|grep -E "^Location"|awk -F: '{print $2}'`/init/redhat/cfn-hup /etc/init.d/
+          cp -f `pip3 show aws-cfn-bootstrap 2>/dev/null|grep -E "^Location"|awk -F: '{print $2}'`/init/redhat/cfn-hup /etc/init.d/
 
           chmod 755 /etc/init.d/cfn-hup
           chkconfig --add cfn-hup
